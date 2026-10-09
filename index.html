@@ -603,19 +603,19 @@
     let selectedPart = null;
     let cartParts = [];
 
-    // DOM読み込み完了時に安全に初期化＆保持データの復元
+    // DOM読み込み完了時に安全に初期化＆localStorageから復元
     document.addEventListener('DOMContentLoaded', function() {
         initTrafficOptions();
         initHoursOptions();
 
-        const isAuth = sessionStorage.getItem('app_authenticated');
+        const isAuth = localStorage.getItem('app_authenticated');
         if (isAuth === 'true') {
             document.getElementById('page-login').classList.add('hidden');
             document.getElementById('app-main').classList.remove('hidden');
 
-            const savedMachines = sessionStorage.getItem('app_machines');
-            const savedParts = sessionStorage.getItem('app_partsData');
-            const savedCart = sessionStorage.getItem('app_cartParts');
+            const savedMachines = localStorage.getItem('app_machines');
+            const savedParts = localStorage.getItem('app_partsData');
+            const savedCart = localStorage.getItem('app_cartParts');
 
             machines = savedMachines ? JSON.parse(savedMachines) : defaultMachines;
             partsData = savedParts ? JSON.parse(savedParts) : defaultPartsData;
@@ -632,13 +632,16 @@
 
     function handleLogin() {
         const pass = document.getElementById('pass-input').value;
-        if (pass === '1234') {
-            sessionStorage.setItem('app_authenticated', 'true');
+        if (pass === '0477') {
+            localStorage.setItem('app_authenticated', 'true');
             document.getElementById('page-login').classList.add('hidden');
             document.getElementById('app-main').classList.remove('hidden');
 
-            if (!machines || machines.length === 0) machines = defaultMachines;
-            if (!partsData || partsData.length === 0) partsData = defaultPartsData;
+            const savedMachines = localStorage.getItem('app_machines');
+            const savedParts = localStorage.getItem('app_partsData');
+
+            machines = savedMachines ? JSON.parse(savedMachines) : defaultMachines;
+            partsData = savedParts ? JSON.parse(savedParts) : defaultPartsData;
 
             renderMachines();
             calculateCart();
@@ -647,8 +650,9 @@
         }
     }
 
+    // ログアウト処理：認証フラグのみクリア（CSVデータは保持）
     function handleLogout() {
-        sessionStorage.clear();
+        localStorage.removeItem('app_authenticated');
         location.reload();
     }
 
@@ -717,8 +721,7 @@
                 badge.classList.add('hidden');
             }
         }
-        // カート内容を保存
-        sessionStorage.setItem('app_cartParts', JSON.stringify(cartParts));
+        localStorage.setItem('app_cartParts', JSON.stringify(cartParts));
     }
 
     function triggerCSVImport() {
@@ -813,9 +816,8 @@
             machines = Array.from(newMachineSet);
             partsData = newParts;
 
-            // 読み込んだCSVデータを sessionStroage に永続保存
-            sessionStorage.setItem('app_machines', JSON.stringify(machines));
-            sessionStorage.setItem('app_partsData', JSON.stringify(partsData));
+            localStorage.setItem('app_machines', JSON.stringify(machines));
+            localStorage.setItem('app_partsData', JSON.stringify(partsData));
 
             renderMachines();
             showToast(`${newParts.length}件の部品データを一括読み込みました`);
