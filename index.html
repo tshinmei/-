@@ -508,6 +508,21 @@
 </div>
 
 <script>
+    // --- 簡易パスワード保護 ---
+    (function() {
+        const SECRET_PASSWORD = "0477"; // ★ここに好きなパスワードを設定してください
+        
+        const userInput = prompt("パスワードを入力してください:");
+        if (userInput !== SECRET_PASSWORD) {
+            alert("パスワードが正しくありません。");
+            document.addEventListener("DOMContentLoaded", function() {
+                document.body.innerHTML = '<div style="text-align:center; padding:50px; font-size:18px; color:#ef4444; font-weight:bold;">アクセス権限がありません</div>';
+            });
+            window.stop();
+        }
+    })();
+    // ---------------------------
+
     let machines = ["CPS-85E", "LC-10", "CPS-354Pro"];
 
     let partsData = [
