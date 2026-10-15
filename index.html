@@ -318,13 +318,45 @@
             cursor: pointer;
         }
 
+        .btn-secondary {
+            width: 100%;
+            height: 40px;
+            background: #e2e8f0;
+            color: #334155;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        /* カート合計金額カードの上部に表示する日付のスタイル */
+        .cart-date-display {
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 600;
+            padding: 0 18px 6px;
+            position: sticky;
+            top: 0;
+            background: #ffffff;
+            z-index: 51;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* 総合計カードを上部に固定（sticky配置） */
         .cart-total-card {
             background: #ffffff;
             border: 1px solid #eef0f2;
             border-radius: 14px;
             padding: 16px;
             margin: 0 18px 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            position: sticky;
+            top: 26px;
+            z-index: 50;
         }
         .cart-total-label {
             font-size: 13px;
@@ -370,6 +402,21 @@
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
+        }
+        .btn-add-history {
+            background: #e0f2fe;
+            color: #0369a1;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 6px;
+        }
+        .history-actions {
+            display: flex;
+            gap: 6px;
         }
         .cart-item-sub {
             font-size: 13px;
@@ -548,6 +595,10 @@
         </div>
         <div class="page-title" style="justify-content: center; color: #1f385c;">カート</div>
 
+        <!-- カート合計金額の上部に表示する日付 -->
+        <div class="cart-date-display" id="cart-current-date">日付: -</div>
+
+        <!-- 常に上に固定される総合計カード -->
         <div class="cart-total-card">
             <div class="cart-total-label">総合計</div>
             <div class="cart-total-val" id="cart-total">¥0</div>
@@ -574,6 +625,20 @@
         </div>
     </div>
 
+    <!-- 5. 履歴画面 -->
+    <div id="page-history" class="hidden">
+        <div class="header">
+            <span class="menu">☰</span>
+            <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+        </div>
+        <div class="page-title" style="justify-content: center; color: #1f385c;">選択履歴</div>
+
+        <div class="cart-section">
+            <div id="history-parts-list"></div>
+            <button class="btn-secondary" style="margin-top: 20px;" onclick="clearHistory()">すべての履歴を削除</button>
+        </div>
+    </div>
+
     <!-- ボトムナビゲーション -->
     <div class="bottom-nav">
         <div class="nav-item active" id="nav-machines" onclick="switchTab('machines')">
@@ -585,6 +650,10 @@
             カート
             <div id="cart-badge" class="badge hidden">0</div>
         </div>
+        <div class="nav-item" id="nav-history" onclick="switchTab('history')">
+            <div class="nav-icon">⏱</div>
+            履歴
+        </div>
     </div>
 
 </div>
@@ -595,11 +664,13 @@
     let currentMachine = "";
     let selectedPart = null;
     let cartParts = [];
+    let partHistory = [];
 
     // DOM読み込み完了時に安全に初期化＆localStorageから復元
     document.addEventListener('DOMContentLoaded', function() {
         initTrafficOptions();
         initHoursOptions();
+        setCurrentDateDisplay();
 
         const isAuth = localStorage.getItem('app_authenticated');
         if (isAuth === 'true') {
@@ -609,16 +680,31 @@
             const savedMachines = localStorage.getItem('app_machines');
             const savedParts = localStorage.getItem('app_partsData');
             const savedCart = localStorage.getItem('app_cartParts');
+            const savedHistory = localStorage.getItem('app_partHistory');
 
             machines = savedMachines ? JSON.parse(savedMachines) : [];
             partsData = savedParts ? JSON.parse(savedParts) : [];
             cartParts = savedCart ? JSON.parse(savedCart) : [];
+            partHistory = savedHistory ? JSON.parse(savedHistory) : [];
 
             renderMachines();
             updateCartBadge();
             calculateCart();
         }
     });
+
+    // 本日の日付を設定する関数
+    function setCurrentDateDisplay() {
+        const dateEl = document.getElementById('cart-current-date');
+        if (!dateEl) return;
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1;
+        const day = now.getDate();
+        const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
+        const weekDay = weekDays[now.getDay()];
+        dateEl.innerText = `📅 ${year}年${month}月${day}日 (${weekDay})`;
+    }
 
     function handleLogin() {
         const pass = document.getElementById('pass-input').value;
@@ -629,9 +715,11 @@
 
             const savedMachines = localStorage.getItem('app_machines');
             const savedParts = localStorage.getItem('app_partsData');
+            const savedHistory = localStorage.getItem('app_partHistory');
 
             machines = savedMachines ? JSON.parse(savedMachines) : [];
             partsData = savedParts ? JSON.parse(savedParts) : [];
+            partHistory = savedHistory ? JSON.parse(savedHistory) : [];
 
             renderMachines();
             calculateCart();
@@ -640,7 +728,7 @@
         }
     }
 
-    // ログアウト処理：認証フラグのみクリア（CSVデータは保持）
+    // ログアウト処理：認証フラグのみクリア（CSVデータや履歴は保持）
     function handleLogout() {
         localStorage.removeItem('app_authenticated');
         location.reload();
@@ -677,7 +765,7 @@
     }
 
     function showPage(pageId) {
-        ['page-machines', 'page-parts', 'page-detail', 'page-cart'].forEach(id => {
+        ['page-machines', 'page-parts', 'page-detail', 'page-cart', 'page-history'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.classList.add('hidden');
         });
@@ -689,14 +777,20 @@
     function switchTab(tab) {
         const navM = document.getElementById('nav-machines');
         const navC = document.getElementById('nav-cart');
+        const navH = document.getElementById('nav-history');
         if (navM) navM.classList.toggle('active', tab === 'machines');
         if (navC) navC.classList.toggle('active', tab === 'cart');
+        if (navH) navH.classList.toggle('active', tab === 'history');
 
         if (tab === 'machines') {
             showPage('page-machines');
-        } else {
+        } else if (tab === 'cart') {
+            setCurrentDateDisplay(); // タブ切り替え時にも最新の日付に更新
             renderCartPage();
             showPage('page-cart');
+        } else if (tab === 'history') {
+            renderHistoryPage();
+            showPage('page-history');
         }
     }
 
@@ -712,6 +806,25 @@
             }
         }
         localStorage.setItem('app_cartParts', JSON.stringify(cartParts));
+    }
+
+    function saveHistory() {
+        localStorage.setItem('app_partHistory', JSON.stringify(partHistory));
+    }
+
+    function addToHistory(part) {
+        partHistory = partHistory.filter(p => !(p.id === part.id && p.machineId === part.machineId));
+        partHistory.unshift({ ...part });
+        if (partHistory.length > 20) {
+            partHistory.pop();
+        }
+        saveHistory();
+    }
+
+    function removeHistoryItem(index) {
+        partHistory.splice(index, 1);
+        saveHistory();
+        renderHistoryPage();
     }
 
     function triggerCSVImport() {
@@ -826,6 +939,11 @@
         if (!container) return;
         container.innerHTML = "";
 
+        if (machines.length === 0) {
+            container.innerHTML = '<div style="color:#888; font-size:14px; padding:20px 0; text-align:center;">「一括CSV」からデータを読み込んでください</div>';
+            return;
+        }
+
         machines.filter(m => m.toLowerCase().includes(keyword)).forEach(m => {
             const item = document.createElement('div');
             item.className = 'list-item';
@@ -914,16 +1032,36 @@
             cartParts.push({ ...selectedPart, qty });
         }
 
+        addToHistory(selectedPart);
+
         updateCartBadge();
         showToast("カートに追加しました");
         showPage('page-parts');
     }
 
+    function addFromHistory(machineId, id) {
+        const targetPart = partsData.find(p => p.machineId === machineId && p.id === id);
+        if (!targetPart) {
+            alert("該当する部品データが見つかりません。");
+            return;
+        }
+
+        const existing = cartParts.find(p => p.id === targetPart.id && p.machineId === targetPart.machineId);
+        if (existing) {
+            existing.qty += 1;
+        } else {
+            cartParts.push({ ...targetPart, qty: 1 });
+        }
+
+        updateCartBadge();
+        showToast("履歴からカートに追加しました");
+    }
+
     function renderCartPage() {
         const container = document.getElementById('cart-parts-list');
         if (!container) return;
-        container.innerHTML = "";
 
+        container.innerHTML = "";
         if (cartParts.length === 0) {
             container.innerHTML = '<div style="color:#888; font-size:14px; padding:10px 0;">部品はありません</div>';
         } else {
@@ -960,6 +1098,32 @@
         calculateCart();
     }
 
+    function renderHistoryPage() {
+        const historyContainer = document.getElementById('history-parts-list');
+        if (!historyContainer) return;
+
+        historyContainer.innerHTML = "";
+        if (partHistory.length === 0) {
+            historyContainer.innerHTML = '<div style="color:#888; font-size:14px; padding:10px 0;">履歴はありません</div>';
+        } else {
+            partHistory.forEach((p, index) => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'cart-item-block';
+                historyItem.innerHTML = `
+                    <div class="cart-item-header">
+                        <div class="cart-item-name">${p.name}</div>
+                        <div class="history-actions">
+                            <button class="btn-add-history" onclick="addFromHistory('${p.machineId}', '${p.id}')">追加</button>
+                            <button class="btn-delete" onclick="removeHistoryItem(${index})">削除</button>
+                        </div>
+                    </div>
+                    <div class="cart-item-sub">機器: ${p.machineId} | 部品番号: ${p.id} | 単価: ￥${p.price.toLocaleString()}</div>
+                `;
+                historyContainer.appendChild(historyItem);
+            });
+        }
+    }
+
     function updateCartItemQty(index, newQty) {
         cartParts[index].qty = parseInt(newQty, 10);
         updateCartBadge();
@@ -985,6 +1149,12 @@
         if (hoursEl) hoursEl.value = "0";
 
         renderCartPage();
+    }
+
+    function clearHistory() {
+        partHistory = [];
+        saveHistory();
+        renderHistoryPage();
     }
 
     function calculateCart() {
