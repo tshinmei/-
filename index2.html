@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>機器部品アプリ</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* スマホでの引っ張って更新（リロード）を防止 */
+        html, body {
+            overscroll-behavior-y: contain;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", sans-serif;
+            background: #eef1f5;
+            color: #222222;
+        }
+
+        .app {
+            max-width: 430px;
+            min-height: 100vh;
+            margin: 0 auto;
+            background: #ffffff;
+            position: relative;
+            padding-bottom: 80px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.08);
+        }
+
+        /* ログイン画面 styles */
+        #page-login {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            background: #eef1f5;
+        }
+        .login-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 340px;
+            padding: 30px 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        .login-card h2 {
+            margin: 0 0 8px;
+            font-size: 20px;
+            color: #1e293b;
+        }
+        .login-card p {
+            margin: 0 0 20px;
+            font-size: 13px;
+            color: #64748b;
+        }
+        .login-input {
+            width: 100%;
+            height: 46px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 0 14px;
+            font-size: 16px;
+            outline: none;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .login-btn {
+            width: 100%;
+            height: 46px;
+            background: #4d5d67;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 50px;
+            padding: 0 18px;
+            font-size: 20px;
+            color: #555;
+        }
+        .back-btn {
+            cursor: pointer;
+            font-size: 22px;
+            color: #667085;
+            background: none;
+            border: none;
+            padding: 0;
+            margin-right: 10px;
+        }
+        .logout-btn {
+            background: none;
+            border: none;
+            color: #ef4444;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            padding: 4px 18px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-csv {
+            background: #f0f4f8;
+            border: 1px solid #cbd5e1;
+            color: #334155;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 41, 59, 0.9);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+
+        .search-box {
+            margin: 0 18px 14px;
+            position: relative;
+        }
+        .search-box input {
+            width: 100%;
+            height: 42px;
+            border: none;
+            border-radius: 10px;
+            background: #f2f3f5;
+            padding: 0 15px 0 38px;
+            font-size: 15px;
+            outline: none;
+            color: #333;
+        }
+        .search-box::before {
+            content: "🔍";
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            color: #888;
+        }
+
+        .list-container {
+            padding: 0 18px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+        }
+        .list-item-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #111;
+        }
+        .arrow {
+            color: #aaa;
+            font-size: 18px;
+        }
+
+        .parts-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+        }
+        .parts-img-thumb {
+            width: 50px;
+            height: 50px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            margin-right: 14px;
+            flex-shrink: 0;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            font-size: 20px;
+            overflow: hidden;
+        }
+        .parts-img-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .parts-info {
+            flex-grow: 1;
+        }
+        .parts-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #111;
+            margin-bottom: 2px;
+        }
+        .parts-sub {
+            font-size: 13px;
+            color: #777;
+            margin-bottom: 2px;
+        }
+        .parts-price {
+            font-size: 14px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .detail-container {
+            padding: 10px 20px;
+        }
+        .detail-img-large {
+            width: 100%;
+            max-height: 220px;
+            object-fit: contain;
+            background: #f8fafc;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            border: 1px solid #e2e8f0;
+        }
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        .detail-title {
+            font-size: 22px;
+            font-weight: 700;
+        }
+        .detail-code {
+            font-size: 14px;
+            color: #777;
+            margin-top: 4px;
+        }
+
+        .row-info {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 15px;
+            color: #666;
+        }
+        .row-info .val {
+            color: #222;
+            font-weight: 500;
+        }
+
+        .form-label {
+            font-weight: 700;
+            font-size: 14px;
+            margin: 20px 0 8px;
+            display: block;
+        }
+
+        .select-input {
+            width: 100%;
+            height: 44px;
+            background: #f2f3f5;
+            border: none;
+            border-radius: 10px;
+            padding: 0 15px;
+            font-size: 16px;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        .btn-primary {
+            width: 100%;
+            height: 48px;
+            background: #4d5d67;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            margin-top: 24px;
+            cursor: pointer;
+        }
+
+        .btn-secondary {
+            width: 100%;
+            height: 40px;
+            background: #e2e8f0;
+            color: #334155;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        /* カート合計金額カードの上部に表示する日付のスタイル */
+        .cart-date-display {
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 600;
+            padding: 0 18px 6px;
+            position: sticky;
+            top: 0;
+            background: #ffffff;
+            z-index: 51;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* 総合計カードを上部に固定（sticky配置） */
+        .cart-total-card {
+            background: #ffffff;
+            border: 1px solid #eef0f2;
+            border-radius: 14px;
+            padding: 16px;
+            margin: 0 18px 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            position: sticky;
+            top: 26px;
+            z-index: 50;
+        }
+        .cart-total-label {
+            font-size: 13px;
+            color: #777;
+        }
+        .cart-total-val {
+            font-size: 26px;
+            font-weight: 800;
+            margin-top: 4px;
+        }
+
+        .cart-section {
+            padding: 0 18px;
+            margin-bottom: 20px;
+        }
+        .cart-section-title {
+            font-size: 18px;
+            font-weight: 800;
+            margin: 20px 0 10px;
+        }
+
+        .cart-item-block {
+            padding: 14px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .cart-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 6px;
+        }
+        .cart-item-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #111;
+        }
+        .btn-delete {
+            background: #fee2e2;
+            color: #ef4444;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-add-history {
+            background: #e0f2fe;
+            color: #0369a1;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 6px;
+        }
+        .history-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .cart-item-sub {
+            font-size: 13px;
+            color: #777;
+            margin-bottom: 8px;
+        }
+        .cart-item-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+        }
+        .cart-qty-select {
+            width: 80px;
+            height: 36px;
+            background: #f2f3f5;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0 10px;
+            font-size: 14px;
+            outline: none;
+        }
+        .cart-item-subtotal {
+            font-size: 15px;
+            font-weight: 700;
+            color: #222;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(430px, 100%);
+            height: 65px;
+            background: rgba(255,255,255,0.98);
+            border-top: 1px solid #eeeeee;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 100;
+        }
+        .nav-item {
+            text-align: center;
+            color: #999;
+            font-size: 11px;
+            cursor: pointer;
+            flex: 1;
+            position: relative;
+        }
+        .nav-item.active {
+            color: #4d5d67;
+            font-weight: 700;
+        }
+        .nav-icon {
+            font-size: 20px;
+            margin-bottom: 2px;
+        }
+
+        .badge {
+            position: absolute;
+            top: -2px;
+            right: 28%;
+            background: #ef4444;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 10px;
+            padding: 2px 6px;
+            min-width: 18px;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 0. ログイン画面 -->
+<div id="page-login">
+    <div class="login-card">
+        <h2>機器部品アプリ</h2>
+        <p>パスワードを入力してください</p>
+        <input type="password" id="pass-input" class="login-input" placeholder="パスワード" onkeydown="if(event.key==='Enter') handleLogin()">
+        <button class="login-btn" onclick="handleLogin()">ログイン</button>
+    </div>
+</div>
+
+<!-- メインアプリ本体 -->
+<div class="app hidden" id="app-main">
+
+    <div id="toast" class="toast">カートに追加しました</div>
+    <input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="handleCSVFile(event)">
+
+    <!-- 1. 機器一覧画面 -->
+    <div id="page-machines">
+        <div class="header">
+            <span class="menu">☰</span>
+            <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+        </div>
+        <div class="page-title">
+            <span>機器リスト</span>
+            <button class="btn-csv" onclick="triggerCSVImport()">📂 一括CSV</button>
+        </div>
+        <div class="search-box">
+            <input type="text" id="search-machine" placeholder="検索" oninput="renderMachines()">
+        </div>
+        <div class="list-container" id="machine-list"></div>
+    </div>
+
+    <!-- 2. 部品一覧画面 -->
+    <div id="page-parts" class="hidden">
+        <div class="header">
+            <button class="back-btn" onclick="showPage('page-machines')">←</button>
+            <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+        </div>
+        <div class="page-title">
+            <span id="parts-page-title">機器名</span>
+        </div>
+        <div class="search-box">
+            <input type="text" id="search-parts" placeholder="検索" oninput="renderParts()">
+        </div>
+        <div class="list-container" id="parts-list"></div>
+    </div>
+
+    <!-- 3. 部品詳細画面 -->
+    <div id="page-detail" class="hidden">
+        <div class="header">
+            <button class="back-btn" onclick="showPage('page-parts')">←</button>
+            <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+        </div>
+        <div class="detail-container">
+            <img id="dt-img" class="detail-img-large hidden" src="" alt="" referrerpolicy="no-referrer">
+
+            <div class="detail-header">
+                <div>
+                    <div class="detail-title" id="dt-name">部品名</div>
+                    <div class="detail-code" id="dt-code">部品番号</div>
+                </div>
+            </div>
+
+            <div class="row-info">
+                <span>定価</span>
+                <span class="val" id="dt-price">0</span>
+            </div>
+            <div class="row-info">
+                <span>機器名</span>
+                <span class="val" id="dt-machine-id">-</span>
+            </div>
+
+            <label class="form-label">数量</label>
+            <select class="select-input" id="dt-qty">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+            </select>
+
+            <button class="btn-primary" onclick="addToCart()">カートに追加</button>
+        </div>
+    </div>
+
+    <!-- 4. カート画面 -->
+    <div id="page-cart" class="hidden">
+        <div class="header">
+            <span class="menu">☰</span>
+            <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+        </div>
+        <div class="page-title" style="justify-content: center; color: #1f385c;">カート</div>
+
+        <!-- カート合計金額の上部に表示する日付 -->
+        <div class="cart-date-display" id="cart-current-date">日付: -</div>
+
+        <!-- 常に上に固定される総合計カード -->
+        <div class="cart-total-card">
+            <div class="cart-total-label">総合計</div>
+            <div class="cart-total-val" id="cart-total">¥0</div>
+        </div>
+
+        <div class="cart-section">
+            <label class="form-label">基本料金</label>
+            <select class="select-input" id="cfg-base" onchange="calculateCart()">
+                <option value="0" selected>0</option>
+                <option value="10000">10,000</option>
+            </select>
+
+            <label class="form-label">交通費</label>
+            <select class="select-input" id="cfg-traffic" onchange="calculateCart()"></select>
+
+            <label class="form-label">作業時間（時間）</label>
+            <select class="select-input" id="cfg-hours" onchange="calculateCart()"></select>
+        </div>
+
+        <div class="cart-section">
+            <div class="cart-section-title">部品</div>
+            <div id="cart-parts-list"></div>
+            <button class="btn-primary" style="margin-top: 20px;" onclick="clearCartParts()">クリア</button>
+        </div>
+    </div>
+
+    <!-- 5. 履歴画面 -->
+    <div id="page-history" class="hidden">
+        <div class="header">
+            <span class="menu">☰</span>
+            <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+        </div>
+        <div class="page-title" style="justify-content: center; color: #1f385c;">選択履歴</div>
+
+        <div class="cart-section">
+            <div id="history-parts-list"></div>
+            <button class="btn-secondary" style="margin-top: 20px;" onclick="clearHistory()">すべての履歴を削除</button>
+        </div>
+    </div>
+
+    <!-- ボトムナビゲーション -->
+    <div class="bottom-nav">
+        <div class="nav-item active" id="nav-machines" onclick="switchTab('machines')">
+            <div class="nav-icon">▣</div>
+            機器リスト
+        </div>
+        <div class="nav-item" id="nav-cart" onclick="switchTab('cart')">
+            <div class="nav-icon">▤</div>
+            カート
+            <div id="cart-badge" class="badge hidden">0</div>
+        </div>
+        <div class="nav-item" id="nav-history" onclick="switchTab('history')">
+            <div class="nav-icon">⏱</div>
+            履歴
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let machines = [];
+    let partsData = [];
+    let currentMachine = "";
+    let selectedPart = null;
+    let cartParts = [];
+    let partHistory = [];
+
+    // DOM読み込み完了時に安全に初期化＆localStorageから復元
+    document.addEventListener('DOMContentLoaded', function() {
+        initTrafficOptions();
+        initHoursOptions();
+        setCurrentDateDisplay();
+
+        const isAuth = localStorage.getItem('app_authenticated');
+        if (isAuth === 'true') {
+            document.getElementById('page-login').classList.add('hidden');
+            document.getElementById('app-main').classList.remove('hidden');
+
+            const savedMachines = localStorage.getItem('app_machines');
+            const savedParts = localStorage.getItem('app_partsData');
+            const savedCart = localStorage.getItem('app_cartParts');
+            const savedHistory = localStorage.getItem('app_partHistory');
+
+            machines = savedMachines ? JSON.parse(savedMachines) : [];
+            partsData = savedParts ? JSON.parse(savedParts) : [];
+            cartParts = savedCart ? JSON.parse(savedCart) : [];
+            partHistory = savedHistory ? JSON.parse(savedHistory) : [];
+
+            renderMachines();
+            updateCartBadge();
+            calculateCart();
+        }
+    });
+
+    // 本日の日付を設定する関数
+    function setCurrentDateDisplay() {
+        const dateEl = document.getElementById('cart-current-date');
+        if (!dateEl) return;
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1;
+        const day = now.getDate();
+        const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
+        const weekDay = weekDays[now.getDay()];
+        dateEl.innerText = `📅 ${year}年${month}月${day}日 (${weekDay})`;
+    }
+
+    function handleLogin() {
+        const pass = document.getElementById('pass-input').value;
+        if (pass === '0477') {
+            localStorage.setItem('app_authenticated', 'true');
+            document.getElementById('page-login').classList.add('hidden');
+            document.getElementById('app-main').classList.remove('hidden');
+
+            const savedMachines = localStorage.getItem('app_machines');
+            const savedParts = localStorage.getItem('app_partsData');
+            const savedHistory = localStorage.getItem('app_partHistory');
+
+            machines = savedMachines ? JSON.parse(savedMachines) : [];
+            partsData = savedParts ? JSON.parse(savedParts) : [];
+            partHistory = savedHistory ? JSON.parse(savedHistory) : [];
+
+            renderMachines();
+            calculateCart();
+        } else {
+            alert('パスワードが正しくありません');
+        }
+    }
+
+    // ログアウト処理：認証フラグのみクリア（CSVデータや履歴は保持）
+    function handleLogout() {
+        localStorage.removeItem('app_authenticated');
+        location.reload();
+    }
+
+    function initTrafficOptions() {
+        const select = document.getElementById('cfg-traffic');
+        if (!select) return;
+        const values = [0, 5000, 7500];
+        for (let v = 10000; v <= 100000; v += 5000) values.push(v);
+
+        select.innerHTML = values.map(v => 
+            `<option value="${v}" ${v === 0 ? 'selected' : ''}>${v.toLocaleString()}</option>`
+        ).join('');
+    }
+
+    function initHoursOptions() {
+        const select = document.getElementById('cfg-hours');
+        if (!select) return;
+        const values = [];
+        for (let h = 0.0; h <= 10.0; h += 0.5) values.push(h);
+
+        select.innerHTML = values.map(h => 
+            `<option value="${h}" ${h === 0.0 ? 'selected' : ''}>${h.toFixed(1)} 時間</option>`
+        ).join('');
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        if (!toast) return;
+        toast.innerText = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 1800);
+    }
+
+    function showPage(pageId) {
+        ['page-machines', 'page-parts', 'page-detail', 'page-cart', 'page-history'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
+        const target = document.getElementById(pageId);
+        if (target) target.classList.remove('hidden');
+        window.scrollTo(0, 0);
+    }
+
+    function switchTab(tab) {
+        const navM = document.getElementById('nav-machines');
+        const navC = document.getElementById('nav-cart');
+        const navH = document.getElementById('nav-history');
+        if (navM) navM.classList.toggle('active', tab === 'machines');
+        if (navC) navC.classList.toggle('active', tab === 'cart');
+        if (navH) navH.classList.toggle('active', tab === 'history');
+
+        if (tab === 'machines') {
+            showPage('page-machines');
+        } else if (tab === 'cart') {
+            setCurrentDateDisplay(); // タブ切り替え時にも最新の日付に更新
+            renderCartPage();
+            showPage('page-cart');
+        } else if (tab === 'history') {
+            renderHistoryPage();
+            showPage('page-history');
+        }
+    }
+
+    function updateCartBadge() {
+        const totalCount = cartParts.reduce((sum, p) => sum + p.qty, 0);
+        const badge = document.getElementById('cart-badge');
+        if (badge) {
+            if (totalCount > 0) {
+                badge.innerText = totalCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+        localStorage.setItem('app_cartParts', JSON.stringify(cartParts));
+    }
+
+    function saveHistory() {
+        localStorage.setItem('app_partHistory', JSON.stringify(partHistory));
+    }
+
+    function addToHistory(part) {
+        partHistory = partHistory.filter(p => !(p.id === part.id && p.machineId === part.machineId));
+        partHistory.unshift({ ...part });
+        if (partHistory.length > 20) {
+            partHistory.pop();
+        }
+        saveHistory();
+    }
+
+    function removeHistoryItem(index) {
+        partHistory.splice(index, 1);
+        saveHistory();
+        renderHistoryPage();
+    }
+
+    function triggerCSVImport() {
+        const input = document.getElementById('csv-file-input');
+        if (input) input.click();
+    }
+
+    function handleCSVFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            parseAndLoadCSV(e.target.result);
+        };
+        reader.readAsText(file, 'Shift_JIS');
+    }
+
+    function parseCSVLine(line) {
+        const result = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                result.push(cur.trim());
+                cur = '';
+            } else {
+                cur += char;
+            }
+        }
+        result.push(cur.trim());
+        return result.map(c => c.replace(/^"(.*)"$/, '$1'));
+    }
+
+    function isValidHttpUrl(string) {
+        if (!string) return false;
+        try {
+            const url = new URL(string);
+            return url.protocol === "http:" || url.protocol === "https:";
+        } catch (_) {
+            return false;  
+        }
+    }
+
+    function parseAndLoadCSV(csvText) {
+        if (csvText.startsWith('\ufeff')) {
+            csvText = csvText.slice(1);
+        }
+
+        const lines = csvText.split(/\r\n|\n/);
+        if (lines.length < 2) {
+            alert("CSVファイルが空かフォーマットが不適切です。");
+            return;
+        }
+
+        const newParts = [];
+        const newMachineSet = new Set();
+
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            const cols = parseCSVLine(line);
+            if (cols.length >= 4) {
+                const machineId = cols[0];
+                const partId = cols[1];
+                const partName = cols[2];
+                
+                const rawPrice = cols[3].replace(/[^0-9]/g, '');
+                const price = parseInt(rawPrice, 10) || 0;
+                
+                const rawImage = cols[4] || "";
+                const imageUrl = isValidHttpUrl(rawImage) ? rawImage : "";
+
+                if (machineId && partId && partName) {
+                    newMachineSet.add(machineId);
+                    newParts.push({
+                        machineId: machineId,
+                        id: partId,
+                        name: partName,
+                        price: price,
+                        imageUrl: imageUrl
+                    });
+                }
+            }
+        }
+
+        if (newParts.length > 0) {
+            machines = Array.from(newMachineSet);
+            partsData = newParts;
+
+            localStorage.setItem('app_machines', JSON.stringify(machines));
+            localStorage.setItem('app_partsData', JSON.stringify(partsData));
+
+            renderMachines();
+            showToast(`${newParts.length}件の部品データを一括読み込みました`);
+        } else {
+            alert("有効なデータが見つかりませんでした。列順（機器ID, 部品番号, 部品名, 定価, 画像URL）をご確認ください。");
+        }
+
+        const csvInput = document.getElementById('csv-file-input');
+        if (csvInput) csvInput.value = "";
+    }
+
+    function renderMachines() {
+        const searchEl = document.getElementById('search-machine');
+        const keyword = searchEl ? searchEl.value.toLowerCase() : "";
+        const container = document.getElementById('machine-list');
+        if (!container) return;
+        container.innerHTML = "";
+
+        if (machines.length === 0) {
+            container.innerHTML = '<div style="color:#888; font-size:14px; padding:20px 0; text-align:center;">「一括CSV」からデータを読み込んでください</div>';
+            return;
+        }
+
+        machines.filter(m => m.toLowerCase().includes(keyword)).forEach(m => {
+            const item = document.createElement('div');
+            item.className = 'list-item';
+            item.innerHTML = `<span class="list-item-title">${m}</span><span class="arrow">›</span>`;
+            item.onclick = () => selectMachine(m);
+            container.appendChild(item);
+        });
+    }
+
+    function selectMachine(machineName) {
+        currentMachine = machineName;
+        const titleEl = document.getElementById('parts-page-title');
+        if (titleEl) titleEl.innerText = machineName;
+        renderParts();
+        showPage('page-parts');
+    }
+
+    function renderParts() {
+        const searchEl = document.getElementById('search-parts');
+        const keyword = searchEl ? searchEl.value.toLowerCase() : "";
+        const container = document.getElementById('parts-list');
+        if (!container) return;
+        container.innerHTML = "";
+
+        const filtered = partsData.filter(p => 
+            p.machineId === currentMachine && 
+            (p.name.toLowerCase().includes(keyword) || p.id.toLowerCase().includes(keyword))
+        );
+
+        if (filtered.length === 0) {
+            container.innerHTML = '<div style="color:#888; font-size:14px; padding:20px 0; text-align:center;">該当する部品がありません</div>';
+            return;
+        }
+
+        filtered.forEach(p => {
+            const item = document.createElement('div');
+            item.className = 'parts-item';
+            
+            const imgHtml = p.imageUrl 
+                ? `<div class="parts-img-thumb"><img src="${p.imageUrl}" alt="" referrerpolicy="no-referrer" onerror="this.style.display='none'; this.parentElement.innerText='📷';"></div>`
+                : `<div class="parts-img-thumb">📷</div>`;
+
+            item.innerHTML = `
+                ${imgHtml}
+                <div class="parts-info">
+                    <div class="parts-name">${p.name}</div>
+                    <div class="parts-sub">部品番号 : ${p.id}</div>
+                    <div class="parts-price">￥${p.price.toLocaleString()}</div>
+                </div>
+                <span class="arrow">›</span>
+            `;
+            item.onclick = () => selectPart(p);
+            container.appendChild(item);
+        });
+    }
+
+    function selectPart(part) {
+        selectedPart = part;
+        document.getElementById('dt-name').innerText = part.name;
+        document.getElementById('dt-code').innerText = part.id;
+        document.getElementById('dt-price').innerText = '￥' + part.price.toLocaleString();
+        document.getElementById('dt-machine-id').innerText = part.machineId;
+        document.getElementById('dt-qty').value = "1";
+
+        const imgEl = document.getElementById('dt-img');
+        if (part.imageUrl) {
+            imgEl.src = part.imageUrl;
+            imgEl.setAttribute('referrerpolicy', 'no-referrer');
+            imgEl.classList.remove('hidden');
+        } else {
+            imgEl.src = "";
+            imgEl.classList.add('hidden');
+        }
+
+        showPage('page-detail');
+    }
+
+    function addToCart() {
+        const qtyEl = document.getElementById('dt-qty');
+        const qty = qtyEl ? parseInt(qtyEl.value, 10) : 1;
+        
+        const existing = cartParts.find(p => p.id === selectedPart.id && p.machineId === selectedPart.machineId);
+        if (existing) {
+            existing.qty += qty;
+        } else {
+            cartParts.push({ ...selectedPart, qty });
+        }
+
+        addToHistory(selectedPart);
+
+        updateCartBadge();
+        showToast("カートに追加しました");
+        showPage('page-parts');
+    }
+
+    function addFromHistory(machineId, id) {
+        const targetPart = partsData.find(p => p.machineId === machineId && p.id === id);
+        if (!targetPart) {
+            alert("該当する部品データが見つかりません。");
+            return;
+        }
+
+        const existing = cartParts.find(p => p.id === targetPart.id && p.machineId === targetPart.machineId);
+        if (existing) {
+            existing.qty += 1;
+        } else {
+            cartParts.push({ ...targetPart, qty: 1 });
+        }
+
+        updateCartBadge();
+        showToast("履歴からカートに追加しました");
+    }
+
+    function renderCartPage() {
+        const container = document.getElementById('cart-parts-list');
+        if (!container) return;
+
+        container.innerHTML = "";
+        if (cartParts.length === 0) {
+            container.innerHTML = '<div style="color:#888; font-size:14px; padding:10px 0;">部品はありません</div>';
+        } else {
+            cartParts.forEach((p, index) => {
+                const subtotal = p.price * p.qty;
+                const item = document.createElement('div');
+                item.className = 'cart-item-block';
+                
+                let qtyOptions = '';
+                for (let i = 1; i <= 10; i++) {
+                    qtyOptions += `<option value="${i}" ${p.qty === i ? 'selected' : ''}>${i}</option>`;
+                }
+
+                item.innerHTML = `
+                    <div class="cart-item-header">
+                        <div class="cart-item-name">${p.name}</div>
+                        <button class="btn-delete" onclick="removeCartItem(${index})">削除</button>
+                    </div>
+                    <div class="cart-item-sub">機器: ${p.machineId} | 部品番号: ${p.id} | 単価: ￥${p.price.toLocaleString()}</div>
+                    <div class="cart-item-controls">
+                        <div>
+                            <span style="font-size:13px; color:#555; margin-right:4px;">数量:</span>
+                            <select class="cart-qty-select" onchange="updateCartItemQty(${index}, this.value)">
+                                ${qtyOptions}
+                            </select>
+                        </div>
+                        <div class="cart-item-subtotal">￥${subtotal.toLocaleString()}</div>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        calculateCart();
+    }
+
+    function renderHistoryPage() {
+        const historyContainer = document.getElementById('history-parts-list');
+        if (!historyContainer) return;
+
+        historyContainer.innerHTML = "";
+        if (partHistory.length === 0) {
+            historyContainer.innerHTML = '<div style="color:#888; font-size:14px; padding:10px 0;">履歴はありません</div>';
+        } else {
+            partHistory.forEach((p, index) => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'cart-item-block';
+                historyItem.innerHTML = `
+                    <div class="cart-item-header">
+                        <div class="cart-item-name">${p.name}</div>
+                        <div class="history-actions">
+                            <button class="btn-add-history" onclick="addFromHistory('${p.machineId}', '${p.id}')">追加</button>
+                            <button class="btn-delete" onclick="removeHistoryItem(${index})">削除</button>
+                        </div>
+                    </div>
+                    <div class="cart-item-sub">機器: ${p.machineId} | 部品番号: ${p.id} | 単価: ￥${p.price.toLocaleString()}</div>
+                `;
+                historyContainer.appendChild(historyItem);
+            });
+        }
+    }
+
+    function updateCartItemQty(index, newQty) {
+        cartParts[index].qty = parseInt(newQty, 10);
+        updateCartBadge();
+        renderCartPage();
+    }
+
+    function removeCartItem(index) {
+        cartParts.splice(index, 1);
+        updateCartBadge();
+        renderCartPage();
+    }
+
+    function clearCartParts() {
+        cartParts = [];
+        updateCartBadge();
+
+        const baseEl = document.getElementById('cfg-base');
+        const trafficEl = document.getElementById('cfg-traffic');
+        const hoursEl = document.getElementById('cfg-hours');
+
+        if (baseEl) baseEl.value = "0";
+        if (trafficEl) trafficEl.value = "0";
+        if (hoursEl) hoursEl.value = "0";
+
+        renderCartPage();
+    }
+
+    function clearHistory() {
+        partHistory = [];
+        saveHistory();
+        renderHistoryPage();
+    }
+
+    function calculateCart() {
+        const baseEl = document.getElementById('cfg-base');
+        const trafficEl = document.getElementById('cfg-traffic');
+        const hoursEl = document.getElementById('cfg-hours');
+        const totalEl = document.getElementById('cart-total');
+
+        if (!totalEl) return;
+
+        const basePrice = baseEl ? (parseInt(baseEl.value, 10) || 0) : 0;
+        const trafficPrice = trafficEl ? (parseInt(trafficEl.value, 10) || 0) : 0;
+        const hours = hoursEl ? (parseFloat(hoursEl.value) || 0) : 0;
+        
+        const laborPrice = hours * 10000;
+        const partsTotal = cartParts.reduce((sum, p) => sum + (p.price * p.qty), 0);
+        const grandTotal = basePrice + trafficPrice + laborPrice + partsTotal;
+
+        totalEl.innerText = '￥' + grandTotal.toLocaleString();
+    }
+</script>
+
+</body>
+</html>
