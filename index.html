@@ -640,7 +640,7 @@
         </div>
         <div class="page-title">
             <span>機器リスト</span>
-            <button class="btn-csv" onclick="triggerCSVImport()">📂 CSV更新</button>
+            <button class="btn-csv" onclick="triggerCSVImport()">📂 部品更新</button>
         </div>
         <div class="search-box">
             <input type="text" id="search-machine" placeholder="検索" oninput="renderMachines()">
@@ -1029,7 +1029,7 @@
         csvContent += "日付,客先名,基本料金,交通費,作業時間,総合計金額,内訳部品\r\n";
 
         workOrders.forEach(order => {
-            const partsStr = order.parts.map(p => `${p.name}×${p.qty}`).join(" / ");
+            const partsStr = order.parts.map(p => `${p.name} (${p.id}) × ${p.qty}`).join(" / ");
             const clientEscaped = `"${order.clientName.replace(/"/g, '""')}"`;
             const partsEscaped = `"${partsStr.replace(/"/g, '""')}"`;
             const totalEscaped = `"${order.totalAmount.replace(/"/g, '""')}"`;
@@ -1068,7 +1068,7 @@
                 const row = document.createElement('div');
                 row.className = 'row-info';
                 row.style.fontSize = '13px';
-                row.innerHTML = `<span>${p.name} × ${p.qty}</span><span class="val">￥${(p.price * p.qty).toLocaleString()}</span>`;
+                row.innerHTML = `<span>${p.name} (${p.id}) × ${p.qty}</span><span class="val">￥${(p.price * p.qty).toLocaleString()}</span>`;
                 partsContainer.appendChild(row);
             });
         }
@@ -1240,7 +1240,7 @@
         container.innerHTML = "";
 
         if (machines.length === 0) {
-            container.innerHTML = '<div style="color:#888; font-size:14px; padding:20px 0; text-align:center;">「CSV更新」からデータを読み込んでください</div>';
+            container.innerHTML = '<div style="color:#888; font-size:14px; padding:20px 0; text-align:center;">「部品更新」からデータを読み込んでください</div>';
             return;
         }
 
