@@ -292,11 +292,11 @@
             display: block;
         }
 
-        .select-input {
+        .select-input, .text-input {
             width: 100%;
             height: 44px;
             background: #f2f3f5;
-            border: none;
+            border: 1px solid #e2e8f0;
             border-radius: 10px;
             padding: 0 15px;
             font-size: 16px;
@@ -331,7 +331,6 @@
             cursor: pointer;
         }
 
-        /* カート合計金額カードの上部に表示する日付のスタイル */
         .cart-date-display {
             font-size: 13px;
             color: #64748b;
@@ -346,7 +345,6 @@
             gap: 4px;
         }
 
-        /* 総合計カードを上部に固定（sticky配置） */
         .cart-total-card {
             background: #ffffff;
             border: 1px solid #eef0f2;
@@ -445,6 +443,93 @@
             color: #222;
         }
 
+        /* 作業一覧用カード */
+        .work-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+        .work-card:active {
+            background: #f1f5f9;
+        }
+        .work-card-info {
+            flex-grow: 1;
+        }
+        .work-client-name {
+            font-size: 17px;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+        .work-date-sub {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 6px;
+        }
+        .work-total-val {
+            font-size: 16px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        /* 詳細モーダル */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .modal-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 390px;
+            max-height: 85vh;
+            border-radius: 16px;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: #1e293b;
+        }
+        .modal-close-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #666;
+        }
+        .modal-section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #475569;
+            margin: 14px 0 6px;
+        }
+
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -479,7 +564,7 @@
         .badge {
             position: absolute;
             top: -2px;
-            right: 28%;
+            right: 20%;
             background: #ef4444;
             color: white;
             font-size: 11px;
@@ -513,6 +598,40 @@
     <div id="toast" class="toast">カートに追加しました</div>
     <input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="handleCSVFile(event)">
 
+    <!-- 詳細モーダル -->
+    <div id="work-detail-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title" id="modal-client-title">客先名</div>
+                <button class="modal-close-btn" onclick="closeWorkDetailModal()">✕</button>
+            </div>
+            <div style="font-size: 13px; color: #64748b; margin-bottom: 12px;" id="modal-date-text">日時: -</div>
+            
+            <div class="row-info">
+                <span>基本料金</span>
+                <span class="val" id="modal-base-price">￥0</span>
+            </div>
+            <div class="row-info">
+                <span>交通費</span>
+                <span class="val" id="modal-traffic-price">￥0</span>
+            </div>
+            <div class="row-info">
+                <span>作業時間</span>
+                <span class="val" id="modal-hours">0.0 時間</span>
+            </div>
+
+            <div class="modal-section-title">選択部品一覧</div>
+            <div id="modal-parts-container"></div>
+
+            <div class="row-info" style="margin-top: 14px; border-top: 2px solid #e2e8f0; font-weight: 800;">
+                <span>総合計金額</span>
+                <span class="val" id="modal-total-amount" style="font-size: 18px; color: #1e293b;">￥0</span>
+            </div>
+
+            <button class="btn-secondary" style="margin-top: 20px; background: #fee2e2; color: #ef4444;" id="modal-delete-btn">この作業履歴を削除</button>
+        </div>
+    </div>
+
     <!-- 1. 機器一覧画面 -->
     <div id="page-machines">
         <div class="header">
@@ -521,7 +640,7 @@
         </div>
         <div class="page-title">
             <span>機器リスト</span>
-            <button class="btn-csv" onclick="triggerCSVImport()">📂 一括CSV</button>
+            <button class="btn-csv" onclick="triggerCSVImport()">📂 CSV更新</button>
         </div>
         <div class="search-box">
             <input type="text" id="search-machine" placeholder="検索" oninput="renderMachines()">
@@ -595,16 +714,17 @@
         </div>
         <div class="page-title" style="justify-content: center; color: #1f385c;">カート</div>
 
-        <!-- カート合計金額の上部に表示する日付 -->
         <div class="cart-date-display" id="cart-current-date">日付: -</div>
 
-        <!-- 常に上に固定される総合計カード -->
         <div class="cart-total-card">
             <div class="cart-total-label">総合計</div>
             <div class="cart-total-val" id="cart-total">¥0</div>
         </div>
 
         <div class="cart-section">
+            <label class="form-label">客先名</label>
+            <input type="text" id="input-client-name" class="text-input" placeholder="客先名を入力">
+
             <label class="form-label">基本料金</label>
             <select class="select-input" id="cfg-base" onchange="calculateCart()">
                 <option value="0" selected>0</option>
@@ -622,10 +742,11 @@
             <div class="cart-section-title">部品</div>
             <div id="cart-parts-list"></div>
             <button class="btn-primary" style="margin-top: 20px;" onclick="clearCartParts()">クリア</button>
+            <button class="btn-primary" style="margin-top: 10px; background: #2563eb;" onclick="saveWorkOrder()">作業内容を保存</button>
         </div>
     </div>
 
-    <!-- 5. 履歴画面 -->
+    <!-- 5. 部品選択履歴画面 -->
     <div id="page-history" class="hidden">
         <div class="header">
             <span class="menu">☰</span>
@@ -636,6 +757,22 @@
         <div class="cart-section">
             <div id="history-parts-list"></div>
             <button class="btn-secondary" style="margin-top: 20px;" onclick="clearHistory()">すべての履歴を削除</button>
+        </div>
+    </div>
+
+    <!-- 6. 作業内容一覧画面 -->
+    <div id="page-worklist" class="hidden">
+        <div class="header" style="justify-content: flex-end;">
+            <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+        </div>
+        <div class="page-title" style="justify-content: space-between; align-items: center; padding-top: 0;">
+            <span>作業一覧</span>
+            <button class="btn-csv" onclick="exportWorkOrdersCSV()">📊 CSV出力</button>
+        </div>
+
+        <div class="cart-section">
+            <div id="worklist-container"></div>
+            <button class="btn-secondary" style="margin-top: 20px;" onclick="clearAllWorkOrders()">すべての作業一覧を削除</button>
         </div>
     </div>
 
@@ -654,6 +791,10 @@
             <div class="nav-icon">⏱</div>
             履歴
         </div>
+        <div class="nav-item" id="nav-worklist" onclick="switchTab('worklist')">
+            <div class="nav-icon">📋</div>
+            作業一覧
+        </div>
     </div>
 
 </div>
@@ -665,8 +806,8 @@
     let selectedPart = null;
     let cartParts = [];
     let partHistory = [];
+    let workOrders = [];
 
-    // DOM読み込み完了時に安全に初期化＆localStorageから復元
     document.addEventListener('DOMContentLoaded', function() {
         initTrafficOptions();
         initHoursOptions();
@@ -681,11 +822,13 @@
             const savedParts = localStorage.getItem('app_partsData');
             const savedCart = localStorage.getItem('app_cartParts');
             const savedHistory = localStorage.getItem('app_partHistory');
+            const savedWorkOrders = localStorage.getItem('app_workOrders');
 
             machines = savedMachines ? JSON.parse(savedMachines) : [];
             partsData = savedParts ? JSON.parse(savedParts) : [];
             cartParts = savedCart ? JSON.parse(savedCart) : [];
             partHistory = savedHistory ? JSON.parse(savedHistory) : [];
+            workOrders = savedWorkOrders ? JSON.parse(savedWorkOrders) : [];
 
             renderMachines();
             updateCartBadge();
@@ -693,7 +836,6 @@
         }
     });
 
-    // 本日の日付を設定する関数
     function setCurrentDateDisplay() {
         const dateEl = document.getElementById('cart-current-date');
         if (!dateEl) return;
@@ -708,7 +850,7 @@
 
     function handleLogin() {
         const pass = document.getElementById('pass-input').value;
-        if (pass === '3921') {
+        if (pass === '0477') {
             localStorage.setItem('app_authenticated', 'true');
             document.getElementById('page-login').classList.add('hidden');
             document.getElementById('app-main').classList.remove('hidden');
@@ -716,10 +858,12 @@
             const savedMachines = localStorage.getItem('app_machines');
             const savedParts = localStorage.getItem('app_partsData');
             const savedHistory = localStorage.getItem('app_partHistory');
+            const savedWorkOrders = localStorage.getItem('app_workOrders');
 
             machines = savedMachines ? JSON.parse(savedMachines) : [];
             partsData = savedParts ? JSON.parse(savedParts) : [];
             partHistory = savedHistory ? JSON.parse(savedHistory) : [];
+            workOrders = savedWorkOrders ? JSON.parse(savedWorkOrders) : [];
 
             renderMachines();
             calculateCart();
@@ -728,7 +872,6 @@
         }
     }
 
-    // ログアウト処理：認証フラグのみクリア（CSVデータや履歴は保持）
     function handleLogout() {
         localStorage.removeItem('app_authenticated');
         location.reload();
@@ -765,7 +908,7 @@
     }
 
     function showPage(pageId) {
-        ['page-machines', 'page-parts', 'page-detail', 'page-cart', 'page-history'].forEach(id => {
+        ['page-machines', 'page-parts', 'page-detail', 'page-cart', 'page-history', 'page-worklist'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.classList.add('hidden');
         });
@@ -778,19 +921,24 @@
         const navM = document.getElementById('nav-machines');
         const navC = document.getElementById('nav-cart');
         const navH = document.getElementById('nav-history');
+        const navW = document.getElementById('nav-worklist');
         if (navM) navM.classList.toggle('active', tab === 'machines');
         if (navC) navC.classList.toggle('active', tab === 'cart');
         if (navH) navH.classList.toggle('active', tab === 'history');
+        if (navW) navW.classList.toggle('active', tab === 'worklist');
 
         if (tab === 'machines') {
             showPage('page-machines');
         } else if (tab === 'cart') {
-            setCurrentDateDisplay(); // タブ切り替え時にも最新の日付に更新
+            setCurrentDateDisplay();
             renderCartPage();
             showPage('page-cart');
         } else if (tab === 'history') {
             renderHistoryPage();
             showPage('page-history');
+        } else if (tab === 'worklist') {
+            renderWorkList();
+            showPage('page-worklist');
         }
     }
 
@@ -825,6 +973,158 @@
         partHistory.splice(index, 1);
         saveHistory();
         renderHistoryPage();
+    }
+
+    function clearHistory() {
+        if (confirm("すべての部品選択履歴を削除しますか？")) {
+            partHistory = [];
+            saveHistory();
+            renderHistoryPage();
+        }
+    }
+
+    function saveWorkOrder() {
+        const clientNameInput = document.getElementById('input-client-name');
+        const clientName = clientNameInput ? clientNameInput.value.trim() : "";
+        if (!clientName) {
+            alert("客先名を入力してください。");
+            return;
+        }
+
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+        
+        const baseEl = document.getElementById('cfg-base');
+        const trafficEl = document.getElementById('cfg-traffic');
+        const hoursEl = document.getElementById('cfg-hours');
+        const totalEl = document.getElementById('cart-total');
+
+        const orderData = {
+            id: Date.now(),
+            date: dateStr,
+            clientName: clientName,
+            basePrice: baseEl ? parseInt(baseEl.value, 10) || 0 : 0,
+            trafficPrice: trafficEl ? parseInt(trafficEl.value, 10) || 0 : 0,
+            hours: hoursEl ? parseFloat(hoursEl.value) || 0 : 0,
+            parts: [...cartParts],
+            totalAmount: totalEl ? totalEl.innerText : "￥0"
+        };
+
+        workOrders.unshift(orderData);
+        localStorage.setItem('app_workOrders', JSON.stringify(workOrders));
+
+        showToast("作業内容を保存しました");
+        clearCartPartsWithoutConfirm();
+        if (clientNameInput) clientNameInput.value = "";
+        switchTab('worklist');
+    }
+
+    function exportWorkOrdersCSV() {
+        if (workOrders.length === 0) {
+            alert("出力する作業一覧がありません。");
+            return;
+        }
+
+        let csvContent = "\uFEFF";
+        csvContent += "日付,客先名,基本料金,交通費,作業時間,総合計金額,内訳部品\r\n";
+
+        workOrders.forEach(order => {
+            const partsStr = order.parts.map(p => `${p.name}×${p.qty}`).join(" / ");
+            const clientEscaped = `"${order.clientName.replace(/"/g, '""')}"`;
+            const partsEscaped = `"${partsStr.replace(/"/g, '""')}"`;
+            const totalEscaped = `"${order.totalAmount.replace(/"/g, '""')}"`;
+
+            csvContent += `${order.date},${clientEscaped},${order.basePrice},${order.trafficPrice},${order.hours},${totalEscaped},${partsEscaped}\r\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `作業一覧_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast("CSVファイルをダウンロードしました");
+    }
+
+    function openWorkDetailModal(id) {
+        const order = workOrders.find(o => o.id === id);
+        if (!order) return;
+
+        document.getElementById('modal-client-title').innerText = `🏢 ${order.clientName}`;
+        document.getElementById('modal-date-text').innerText = `日時: ${order.date}`;
+        document.getElementById('modal-base-price').innerText = `￥${order.basePrice.toLocaleString()}`;
+        document.getElementById('modal-traffic-price').innerText = `￥${order.trafficPrice.toLocaleString()}`;
+        document.getElementById('modal-hours').innerText = `${order.hours.toFixed(1)} 時間`;
+        document.getElementById('modal-total-amount').innerText = order.totalAmount;
+
+        const partsContainer = document.getElementById('modal-parts-container');
+        partsContainer.innerHTML = "";
+        if (!order.parts || order.parts.length === 0) {
+            partsContainer.innerHTML = '<div style="color:#888; font-size:13px; padding:4px 0;">部品なし</div>';
+        } else {
+            order.parts.forEach(p => {
+                const row = document.createElement('div');
+                row.className = 'row-info';
+                row.style.fontSize = '13px';
+                row.innerHTML = `<span>${p.name} × ${p.qty}</span><span class="val">￥${(p.price * p.qty).toLocaleString()}</span>`;
+                partsContainer.appendChild(row);
+            });
+        }
+
+        document.getElementById('modal-delete-btn').onclick = () => {
+            removeWorkOrder(order.id);
+            closeWorkDetailModal();
+        };
+
+        document.getElementById('work-detail-modal').classList.remove('hidden');
+    }
+
+    function closeWorkDetailModal() {
+        document.getElementById('work-detail-modal').classList.add('hidden');
+    }
+
+    function removeWorkOrder(id) {
+        if (confirm("この作業履歴を削除しますか？")) {
+            workOrders = workOrders.filter(o => o.id !== id);
+            localStorage.setItem('app_workOrders', JSON.stringify(workOrders));
+            renderWorkList();
+        }
+    }
+
+    function clearAllWorkOrders() {
+        if (confirm("すべての作業一覧を削除しますか？")) {
+            workOrders = [];
+            localStorage.setItem('app_workOrders', JSON.stringify(workOrders));
+            renderWorkList();
+        }
+    }
+
+    function renderWorkList() {
+        const container = document.getElementById('worklist-container');
+        if (!container) return;
+
+        container.innerHTML = "";
+        if (workOrders.length === 0) {
+            container.innerHTML = '<div style="color:#888; font-size:14px; padding:10px 0; text-align:center;">保存された作業一覧はありません</div>';
+            return;
+        }
+
+        workOrders.forEach((order) => {
+            const card = document.createElement('div');
+            card.className = 'work-card';
+            card.onclick = () => openWorkDetailModal(order.id);
+            card.innerHTML = `
+                <div class="work-card-info">
+                    <div class="work-client-name">🏢 ${order.clientName}</div>
+                    <div class="work-date-sub">📅 ${order.date}</div>
+                    <div class="work-total-val">総合計: ${order.totalAmount}</div>
+                </div>
+                <div class="arrow">›</div>
+            `;
+            container.appendChild(card);
+        });
     }
 
     function triggerCSVImport() {
@@ -940,7 +1240,7 @@
         container.innerHTML = "";
 
         if (machines.length === 0) {
-            container.innerHTML = '<div style="color:#888; font-size:14px; padding:20px 0; text-align:center;">「一括CSV」からデータを読み込んでください</div>';
+            container.innerHTML = '<div style="color:#888; font-size:14px; padding:20px 0; text-align:center;">「CSV更新」からデータを読み込んでください</div>';
             return;
         }
 
@@ -1137,24 +1437,26 @@
     }
 
     function clearCartParts() {
+        if (confirm("本当にカートの中身と料金をクリアしますか？")) {
+            clearCartPartsWithoutConfirm();
+        }
+    }
+
+    function clearCartPartsWithoutConfirm() {
         cartParts = [];
         updateCartBadge();
 
         const baseEl = document.getElementById('cfg-base');
         const trafficEl = document.getElementById('cfg-traffic');
         const hoursEl = document.getElementById('cfg-hours');
+        const clientNameInput = document.getElementById('input-client-name');
 
         if (baseEl) baseEl.value = "0";
         if (trafficEl) trafficEl.value = "0";
         if (hoursEl) hoursEl.value = "0";
+        if (clientNameInput) clientNameInput.value = "";
 
         renderCartPage();
-    }
-
-    function clearHistory() {
-        partHistory = [];
-        saveHistory();
-        renderHistoryPage();
     }
 
     function calculateCart() {
