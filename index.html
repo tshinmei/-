@@ -1661,6 +1661,14 @@
             return;
         }
 
+        // --- 誤選択防止用バリデーション ---
+        if (lines[0].includes("種別") || lines[0].includes("型式") || lines[0].includes("搬入設置費")) {
+            alert("【エラー】選択されたファイルは「営業用（製品価格台帳）」のCSVです。\n技術用（機器リスト）のCSVファイルを選択してください。");
+            const csvInput = document.getElementById('csv-file-input');
+            if (csvInput) csvInput.value = "";
+            return;
+        }
+
         const newParts = [];
         const newMachineSet = new Set();
 
@@ -1718,6 +1726,14 @@
         const lines = csvText.split(/\r\n|\n/);
         if (lines.length < 2) {
             alert("CSVファイルが空かフォーマットが不適切です。");
+            return;
+        }
+
+        // --- 誤選択防止用バリデーション ---
+        if (lines[0].includes("機器ID") || lines[0].includes("部品番号") || lines[0].includes("部品名")) {
+            alert("【エラー】選択されたファイルは「技術用（機器リスト）」のCSVです。\n営業用（製品価格台帳）のCSVファイルを選択してください。");
+            const productCsvInput = document.getElementById('product-csv-file-input');
+            if (productCsvInput) productCsvInput.value = "";
             return;
         }
 
