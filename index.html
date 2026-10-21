@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>機器部品アプリ</title>
+    <title>機器部品・製品価格アプリ</title>
     <style>
         * {
             box-sizing: border-box;
@@ -27,6 +27,7 @@
             position: relative;
             padding-bottom: 80px;
             box-shadow: 0 0 20px rgba(0,0,0,0.08);
+            overflow-x: hidden;
         }
 
         /* ログイン画面 styles */
@@ -81,6 +82,77 @@
             cursor: pointer;
         }
 
+        /* サイドメニュー styles */
+        .side-menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.4);
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .side-menu-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .side-menu {
+            position: fixed;
+            top: 0;
+            left: -280px;
+            width: 280px;
+            height: 100vh;
+            background: #ffffff;
+            z-index: 201;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.15);
+            transition: left 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .side-menu.active {
+            left: 0;
+        }
+        .side-menu-header {
+            background: #4d5d67;
+            color: #ffffff;
+            padding: 24px 20px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .side-menu-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex-grow: 1;
+        }
+        .side-menu-item {
+            padding: 16px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #334155;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .side-menu-item:active {
+            background: #f8fafc;
+        }
+        .side-menu-item.active {
+            background: #e2e8f0;
+            color: #1e293b;
+            font-weight: 800;
+        }
+        .side-menu-item.logout {
+            color: #ef4444;
+            border-top: 2px solid #f1f5f9;
+            margin-top: auto;
+        }
+
         .header {
             display: flex;
             align-items: center;
@@ -90,6 +162,14 @@
             font-size: 20px;
             color: #555;
         }
+        .menu-btn {
+            cursor: pointer;
+            font-size: 22px;
+            color: #4d5d67;
+            background: none;
+            border: none;
+            padding: 0;
+        }
         .back-btn {
             cursor: pointer;
             font-size: 22px;
@@ -98,14 +178,6 @@
             border: none;
             padding: 0;
             margin-right: 10px;
-        }
-        .logout-btn {
-            background: none;
-            border: none;
-            color: #ef4444;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
         }
 
         .page-title {
@@ -202,6 +274,11 @@
             align-items: center;
             padding: 12px 0;
             border-bottom: 1px solid #f0f0f0;
+        }
+        .parts-content {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
             cursor: pointer;
         }
         .parts-img-thumb {
@@ -242,6 +319,18 @@
             font-size: 14px;
             color: #555;
             font-weight: 600;
+        }
+        .fav-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+            color: #cbd5e1;
+            transition: transform 0.1s;
+        }
+        .fav-btn.active {
+            color: #eab308;
         }
 
         .detail-container {
@@ -285,11 +374,31 @@
             font-weight: 500;
         }
 
+        .form-label-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0 8px;
+        }
         .form-label {
             font-weight: 700;
             font-size: 14px;
-            margin: 20px 0 8px;
-            display: block;
+            margin: 0;
+        }
+        .toggle-custom-label {
+            font-size: 12px;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .toggle-custom-label input[type="checkbox"] {
+            width: 15px;
+            height: 15px;
+            accent-color: #4d5d67;
+            cursor: pointer;
         }
 
         .select-input, .text-input {
@@ -443,7 +552,6 @@
             color: #222;
         }
 
-        /* 作業一覧用カード */
         .work-card {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
@@ -479,7 +587,6 @@
             color: #0f172a;
         }
 
-        /* 詳細モーダル */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -595,8 +702,26 @@
 <!-- メインアプリ本体 -->
 <div class="app hidden" id="app-main">
 
+    <!-- サイドメニュー -->
+    <div id="side-menu-overlay" class="side-menu-overlay" onclick="closeSideMenu()"></div>
+    <div id="side-menu" class="side-menu">
+        <div class="side-menu-header">メニュー選択</div>
+        <ul class="side-menu-list">
+            <li class="side-menu-item active" id="menu-opt-machines" onclick="selectAppMode('machines')">
+                <span>🛠️ 技術用</span>
+            </li>
+            <li class="side-menu-item" id="menu-opt-products" onclick="selectAppMode('products')">
+                <span>💼 営業用</span>
+            </li>
+            <li class="side-menu-item logout" onclick="handleLogout()">
+                <span>🚪 ログアウト</span>
+            </li>
+        </ul>
+    </div>
+
     <div id="toast" class="toast">カートに追加しました</div>
     <input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="handleCSVFile(event)">
+    <input type="file" id="product-csv-file-input" accept=".csv" class="hidden" onchange="handleProductCSVFile(event)">
 
     <!-- 詳細モーダル -->
     <div id="work-detail-modal" class="modal-overlay hidden">
@@ -607,20 +732,29 @@
             </div>
             <div style="font-size: 13px; color: #64748b; margin-bottom: 12px;" id="modal-date-text">日時: -</div>
             
-            <div class="row-info">
-                <span>基本料金</span>
-                <span class="val" id="modal-base-price">￥0</span>
-            </div>
-            <div class="row-info">
-                <span>交通費</span>
-                <span class="val" id="modal-traffic-price">￥0</span>
-            </div>
-            <div class="row-info">
-                <span>作業時間</span>
-                <span class="val" id="modal-hours">0.0 時間</span>
+            <div id="modal-tech-costs">
+                <div class="row-info">
+                    <span>基本料金</span>
+                    <span class="val" id="modal-base-price">￥0</span>
+                </div>
+                <div class="row-info">
+                    <span>交通費</span>
+                    <span class="val" id="modal-traffic-price">￥0</span>
+                </div>
+                <div class="row-info">
+                    <span>作業費</span>
+                    <span class="val" id="modal-labor-price">￥0</span>
+                </div>
             </div>
 
-            <div class="modal-section-title">選択部品一覧</div>
+            <div id="modal-sales-costs" class="hidden">
+                <div class="row-info">
+                    <span>搬入設置費</span>
+                    <span class="val" id="modal-install-price">￥0</span>
+                </div>
+            </div>
+
+            <div class="modal-section-title">選択部品・製品一覧</div>
             <div id="modal-parts-container"></div>
 
             <div class="row-info" style="margin-top: 14px; border-top: 2px solid #e2e8f0; font-weight: 800;">
@@ -632,11 +766,10 @@
         </div>
     </div>
 
-    <!-- 1. 機器一覧画面 -->
+    <!-- 1. 技術用（機器一覧）画面 -->
     <div id="page-machines">
         <div class="header">
-            <span class="menu">☰</span>
-            <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+            <button class="menu-btn" onclick="openSideMenu()">☰</button>
         </div>
         <div class="page-title">
             <span>機器リスト</span>
@@ -648,14 +781,28 @@
         <div class="list-container" id="machine-list"></div>
     </div>
 
-    <!-- 2. 部品一覧画面 -->
-    <div id="page-parts" class="hidden">
+    <!-- 1-B. 営業用（種別一覧）画面 -->
+    <div id="page-products" class="hidden">
         <div class="header">
-            <button class="back-btn" onclick="showPage('page-machines')">←</button>
-            <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+            <button class="menu-btn" onclick="openSideMenu()">☰</button>
         </div>
         <div class="page-title">
-            <span id="parts-page-title">機器名</span>
+            <span>製品価格</span>
+            <button class="btn-csv" onclick="triggerProductCSVImport()">📂 製品更新</button>
+        </div>
+        <div class="search-box">
+            <input type="text" id="search-product-category" placeholder="種別を検索" oninput="renderProductCategories()">
+        </div>
+        <div class="list-container" id="product-category-list"></div>
+    </div>
+
+    <!-- 2. 部品・製品一覧画面 -->
+    <div id="page-parts" class="hidden">
+        <div class="header">
+            <button class="back-btn" id="parts-back-btn" onclick="showPage('page-machines')">←</button>
+        </div>
+        <div class="page-title">
+            <span id="parts-page-title">機器/種別名</span>
         </div>
         <div class="search-box">
             <input type="text" id="search-parts" placeholder="検索" oninput="renderParts()">
@@ -663,32 +810,41 @@
         <div class="list-container" id="parts-list"></div>
     </div>
 
-    <!-- 3. 部品詳細画面 -->
+    <!-- 3. 詳細画面 -->
     <div id="page-detail" class="hidden">
         <div class="header">
-            <button class="back-btn" onclick="showPage('page-parts')">←</button>
-            <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+            <button class="back-btn" id="detail-back-btn" onclick="showPage('page-parts')">←</button>
         </div>
         <div class="detail-container">
             <img id="dt-img" class="detail-img-large hidden" src="" alt="" referrerpolicy="no-referrer">
 
             <div class="detail-header">
                 <div>
-                    <div class="detail-title" id="dt-name">部品名</div>
-                    <div class="detail-code" id="dt-code">部品番号</div>
+                    <div class="detail-title" id="dt-name">製品名 / 部品名</div>
+                    <div class="detail-code" id="dt-code">商品コード / 部品番号</div>
                 </div>
             </div>
 
-            <div class="row-info">
-                <span>定価</span>
-                <span class="val" id="dt-price">0</span>
+            <div class="row-info" id="row-dt-type" style="display:none;">
+                <span id="label-dt-type">型式</span>
+                <span class="val" id="dt-type-val">-</span>
             </div>
             <div class="row-info">
-                <span>機器名</span>
+                <span>定価</span>
+                <span class="val" id="dt-price">￥0</span>
+            </div>
+            <div class="row-info" id="row-dt-install" style="display:none;">
+                <span>搬入設置費</span>
+                <span class="val" id="dt-install-val">￥0</span>
+            </div>
+            <div class="row-info">
+                <span>機器/種別名</span>
                 <span class="val" id="dt-machine-id">-</span>
             </div>
 
-            <label class="form-label">数量</label>
+            <div class="form-label-header">
+                <label class="form-label">数量</label>
+            </div>
             <select class="select-input" id="dt-qty">
                 <option value="1">1</option>
                 <option value="2">2</option>
@@ -709,8 +865,7 @@
     <!-- 4. カート画面 -->
     <div id="page-cart" class="hidden">
         <div class="header">
-            <span class="menu">☰</span>
-            <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+            <button class="menu-btn" onclick="openSideMenu()">☰</button>
         </div>
         <div class="page-title" style="justify-content: center; color: #1f385c;">カート</div>
 
@@ -722,24 +877,63 @@
         </div>
 
         <div class="cart-section">
-            <label class="form-label">客先名</label>
+            <div class="form-label-header">
+                <label class="form-label">客先名</label>
+            </div>
             <input type="text" id="input-client-name" class="text-input" placeholder="客先名を入力">
 
-            <label class="form-label">基本料金</label>
-            <select class="select-input" id="cfg-base" onchange="calculateCart()">
-                <option value="0" selected>0</option>
-                <option value="10000">10,000</option>
-            </select>
+            <!-- 技術用料金設定 -->
+            <div id="cart-tech-settings">
+                <!-- 基本料金 -->
+                <div class="form-label-header">
+                    <label class="form-label">基本料金</label>
+                    <label class="toggle-custom-label">
+                        <input type="checkbox" id="chk-base-custom" onchange="toggleCustomInput('base')"> 直接入力
+                    </label>
+                </div>
+                <select class="select-input" id="cfg-base" onchange="calculateCart()">
+                    <option value="0" selected>0</option>
+                    <option value="8000">8,000</option>
+                    <option value="10000">10,000</option>
+                </select>
+                <input type="number" id="cfg-base-custom" class="text-input hidden" placeholder="金額を入力（円）" oninput="calculateCart()">
 
-            <label class="form-label">交通費</label>
-            <select class="select-input" id="cfg-traffic" onchange="calculateCart()"></select>
+                <!-- 交通費 -->
+                <div class="form-label-header">
+                    <label class="form-label">交通費</label>
+                    <label class="toggle-custom-label">
+                        <input type="checkbox" id="chk-traffic-custom" onchange="toggleCustomInput('traffic')"> 直接入力
+                    </label>
+                </div>
+                <select class="select-input" id="cfg-traffic" onchange="calculateCart()"></select>
+                <input type="number" id="cfg-traffic-custom" class="text-input hidden" placeholder="金額を入力（円）" oninput="calculateCart()">
 
-            <label class="form-label">作業時間（時間）</label>
-            <select class="select-input" id="cfg-hours" onchange="calculateCart()"></select>
+                <!-- 作業費 -->
+                <div class="form-label-header">
+                    <label class="form-label">作業費</label>
+                    <label class="toggle-custom-label">
+                        <input type="checkbox" id="chk-labor-custom" onchange="toggleCustomInput('labor')"> 直接入力
+                    </label>
+                </div>
+                <select class="select-input" id="cfg-labor" onchange="calculateCart()"></select>
+                <input type="number" id="cfg-labor-custom" class="text-input hidden" placeholder="金額を入力（円）" oninput="calculateCart()">
+            </div>
+
+            <!-- 営業用料金設定 -->
+            <div id="cart-sales-settings" class="hidden">
+                <div class="form-label-header">
+                    <label class="form-label">搬入設置費</label>
+                    <label class="toggle-custom-label">
+                        <input type="checkbox" id="chk-install-custom" onchange="toggleCustomInput('install')"> 直接入力
+                    </label>
+                </div>
+                <input type="text" id="cfg-install-auto" class="text-input" readonly value="￥0 (自動計算)">
+                <input type="number" id="cfg-install-custom" class="text-input hidden" placeholder="金額を入力（円）" oninput="calculateCart()">
+            </div>
         </div>
 
         <div class="cart-section">
-            <div class="cart-section-title">部品</div>
+            <div class="cart-section-title">部品・製品</div>
             <div id="cart-parts-list"></div>
             <button class="btn-primary" style="margin-top: 20px;" onclick="clearCartParts()">クリア</button>
             <button class="btn-primary" style="margin-top: 10px; background: #2563eb;" onclick="saveWorkOrder()">作業内容を保存</button>
@@ -749,8 +943,7 @@
     <!-- 5. 部品選択履歴画面 -->
     <div id="page-history" class="hidden">
         <div class="header">
-            <span class="menu">☰</span>
-            <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+            <button class="menu-btn" onclick="openSideMenu()">☰</button>
         </div>
         <div class="page-title" style="justify-content: center; color: #1f385c;">選択履歴</div>
 
@@ -762,8 +955,8 @@
 
     <!-- 6. 作業内容一覧画面 -->
     <div id="page-worklist" class="hidden">
-        <div class="header" style="justify-content: flex-end;">
-            <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+        <div class="header">
+            <button class="menu-btn" onclick="openSideMenu()">☰</button>
         </div>
         <div class="page-title" style="justify-content: space-between; align-items: center; padding-top: 0;">
             <span>作業一覧</span>
@@ -779,8 +972,8 @@
     <!-- ボトムナビゲーション -->
     <div class="bottom-nav">
         <div class="nav-item active" id="nav-machines" onclick="switchTab('machines')">
-            <div class="nav-icon">▣</div>
-            機器リスト
+            <div class="nav-icon" id="nav-icon-main">🛠️</div>
+            <span id="nav-label-main">機器リスト</span>
         </div>
         <div class="nav-item" id="nav-cart" onclick="switchTab('cart')">
             <div class="nav-icon">▤</div>
@@ -800,17 +993,57 @@
 </div>
 
 <script>
+    let currentAppMode = "machines"; // "machines" (技術用) または "products" (営業用)
     let machines = [];
     let partsData = [];
+    
+    let productCategories = [];
+    let productsData = [];
+
+    let favorites = [];
+    let productFavorites = [];
+    
     let currentMachine = "";
     let selectedPart = null;
-    let cartParts = [];
-    let partHistory = [];
-    let workOrders = [];
+
+    /* モード別に分離されたカート、履歴、作業一覧 */
+    let cartPartsTech = [];
+    let cartPartsSales = [];
+
+    let partHistoryTech = [];
+    let partHistorySales = [];
+
+    let workOrdersTech = [];
+    let workOrdersSales = [];
+
+    /* ゲッター・セッター用ヘルパー */
+    function getActiveCart() {
+        return currentAppMode === 'machines' ? cartPartsTech : cartPartsSales;
+    }
+    function setActiveCart(arr) {
+        if (currentAppMode === 'machines') cartPartsTech = arr;
+        else cartPartsSales = arr;
+    }
+
+    function getActiveHistory() {
+        return currentAppMode === 'machines' ? partHistoryTech : partHistorySales;
+    }
+    function setActiveHistory(arr) {
+        if (currentAppMode === 'machines') partHistoryTech = arr;
+        else partHistorySales = arr;
+    }
+
+    function getActiveWorkOrders() {
+        return currentAppMode === 'machines' ? workOrdersTech : workOrdersSales;
+    }
+    function setActiveWorkOrders(arr) {
+        if (currentAppMode === 'machines') workOrdersTech = arr;
+        else workOrdersSales = arr;
+    }
 
     document.addEventListener('DOMContentLoaded', function() {
         initTrafficOptions();
-        initHoursOptions();
+        initLaborOptions();
         setCurrentDateDisplay();
 
         const isAuth = localStorage.getItem('app_authenticated');
@@ -818,23 +1051,70 @@
             document.getElementById('page-login').classList.add('hidden');
             document.getElementById('app-main').classList.remove('hidden');
 
-            const savedMachines = localStorage.getItem('app_machines');
-            const savedParts = localStorage.getItem('app_partsData');
-            const savedCart = localStorage.getItem('app_cartParts');
-            const savedHistory = localStorage.getItem('app_partHistory');
-            const savedWorkOrders = localStorage.getItem('app_workOrders');
+            machines = JSON.parse(localStorage.getItem('app_machines') || '[]');
+            partsData = JSON.parse(localStorage.getItem('app_partsData') || '[]');
+            productCategories = JSON.parse(localStorage.getItem('app_productCategories') || '[]');
+            productsData = JSON.parse(localStorage.getItem('app_productsData') || '[]');
+            favorites = JSON.parse(localStorage.getItem('app_favorites') || '[]');
+            productFavorites = JSON.parse(localStorage.getItem('app_productFavorites') || '[]');
 
-            machines = savedMachines ? JSON.parse(savedMachines) : [];
-            partsData = savedParts ? JSON.parse(savedParts) : [];
-            cartParts = savedCart ? JSON.parse(savedCart) : [];
-            partHistory = savedHistory ? JSON.parse(savedHistory) : [];
-            workOrders = savedWorkOrders ? JSON.parse(savedWorkOrders) : [];
+            cartPartsTech = JSON.parse(localStorage.getItem('app_cartPartsTech') || '[]');
+            cartPartsSales = JSON.parse(localStorage.getItem('app_cartPartsSales') || '[]');
+
+            partHistoryTech = JSON.parse(localStorage.getItem('app_partHistoryTech') || '[]');
+            partHistorySales = JSON.parse(localStorage.getItem('app_partHistorySales') || '[]');
+
+            workOrdersTech = JSON.parse(localStorage.getItem('app_workOrdersTech') || '[]');
+            workOrdersSales = JSON.parse(localStorage.getItem('app_workOrdersSales') || '[]');
 
             renderMachines();
+            renderProductCategories();
             updateCartBadge();
             calculateCart();
         }
     });
+
+    function openSideMenu() {
+        document.getElementById('side-menu-overlay').classList.add('active');
+        document.getElementById('side-menu').classList.add('active');
+    }
+
+    function closeSideMenu() {
+        document.getElementById('side-menu-overlay').classList.remove('active');
+        document.getElementById('side-menu').classList.remove('active');
+    }
+
+    function selectAppMode(mode) {
+        currentAppMode = mode;
+        closeSideMenu();
+
+        document.getElementById('menu-opt-machines').classList.toggle('active', mode === 'machines');
+        document.getElementById('menu-opt-products').classList.toggle('active', mode === 'products');
+
+        const navIcon = document.getElementById('nav-icon-main');
+        const navLabel = document.getElementById('nav-label-main');
+
+        if (mode === 'machines') {
+            if (navIcon) navIcon.innerText = "🛠️";
+            if (navLabel) navLabel.innerText = "機器リスト";
+            showPage('page-machines');
+        } else {
+            if (navIcon) navIcon.innerText = "💼";
+            if (navLabel) navLabel.innerText = "製品リスト";
+            renderProductCategories();
+            showPage('page-products');
+        }
+        
+        const navM = document.getElementById('nav-machines');
+        if (navM) navM.classList.add('active');
+        ['nav-cart', 'nav-history', 'nav-worklist'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('active');
+        });
+
+        updateCartBadge();
+        calculateCart();
+    }
 
     function setCurrentDateDisplay() {
         const dateEl = document.getElementById('cart-current-date');
@@ -855,17 +1135,24 @@
             document.getElementById('page-login').classList.add('hidden');
             document.getElementById('app-main').classList.remove('hidden');
 
-            const savedMachines = localStorage.getItem('app_machines');
-            const savedParts = localStorage.getItem('app_partsData');
-            const savedHistory = localStorage.getItem('app_partHistory');
-            const savedWorkOrders = localStorage.getItem('app_workOrders');
+            machines = JSON.parse(localStorage.getItem('app_machines') || '[]');
+            partsData = JSON.parse(localStorage.getItem('app_partsData') || '[]');
+            productCategories = JSON.parse(localStorage.getItem('app_productCategories') || '[]');
+            productsData = JSON.parse(localStorage.getItem('app_productsData') || '[]');
+            favorites = JSON.parse(localStorage.getItem('app_favorites') || '[]');
+            productFavorites = JSON.parse(localStorage.getItem('app_productFavorites') || '[]');
 
-            machines = savedMachines ? JSON.parse(savedMachines) : [];
-            partsData = savedParts ? JSON.parse(savedParts) : [];
-            partHistory = savedHistory ? JSON.parse(savedHistory) : [];
-            workOrders = savedWorkOrders ? JSON.parse(savedWorkOrders) : [];
+            cartPartsTech = JSON.parse(localStorage.getItem('app_cartPartsTech') || '[]');
+            cartPartsSales = JSON.parse(localStorage.getItem('app_cartPartsSales') || '[]');
+
+            partHistoryTech = JSON.parse(localStorage.getItem('app_partHistoryTech') || '[]');
+            partHistorySales = JSON.parse(localStorage.getItem('app_partHistorySales') || '[]');
+
+            workOrdersTech = JSON.parse(localStorage.getItem('app_workOrdersTech') || '[]');
+            workOrdersSales = JSON.parse(localStorage.getItem('app_workOrdersSales') || '[]');
 
             renderMachines();
+            renderProductCategories();
             calculateCart();
         } else {
             alert('パスワードが正しくありません');
@@ -888,15 +1175,70 @@
         ).join('');
     }
 
-    function initHoursOptions() {
-        const select = document.getElementById('cfg-hours');
+    function initLaborOptions() {
+        const select = document.getElementById('cfg-labor');
         if (!select) return;
         const values = [];
-        for (let h = 0.0; h <= 10.0; h += 0.5) values.push(h);
+        for (let v = 0; v <= 100000; v += 5000) values.push(v);
 
-        select.innerHTML = values.map(h => 
-            `<option value="${h}" ${h === 0.0 ? 'selected' : ''}>${h.toFixed(1)} 時間</option>`
+        select.innerHTML = values.map(v => 
+            `<option value="${v}" ${v === 0 ? 'selected' : ''}>${v.toLocaleString()}</option>`
         ).join('');
+    }
+
+    function toggleCustomInput(type) {
+        const isCustom = document.getElementById(`chk-${type}-custom`).checked;
+        if (type === 'install') {
+            const autoEl = document.getElementById(`cfg-install-auto`);
+            const customEl = document.getElementById(`cfg-install-custom`);
+            if (isCustom) {
+                autoEl.classList.add('hidden');
+                customEl.classList.remove('hidden');
+                const autoVal = calculateAutoInstallTotal();
+                if (!customEl.value) customEl.value = autoVal;
+            } else {
+                customEl.classList.add('hidden');
+                autoEl.classList.remove('hidden');
+            }
+        } else {
+            const selectEl = document.getElementById(`cfg-${type}`);
+            const customEl = document.getElementById(`cfg-${type}-custom`);
+            if (isCustom) {
+                selectEl.classList.add('hidden');
+                customEl.classList.remove('hidden');
+                if (!customEl.value) customEl.value = selectEl.value;
+            } else {
+                customEl.classList.add('hidden');
+                selectEl.classList.remove('hidden');
+            }
+        }
+        calculateCart();
+    }
+
+    function getCostValue(type) {
+        const isCustom = document.getElementById(`chk-${type}-custom`) ? document.getElementById(`chk-${type}-custom`).checked : false;
+        if (isCustom) {
+            const customEl = document.getElementById(`cfg-${type}-custom`);
+            return parseInt(customEl ? customEl.value : 0, 10) || 0;
+        } else {
+            const selectEl = document.getElementById(`cfg-${type}`);
+            return parseInt(selectEl ? selectEl.value : 0, 10) || 0;
+        }
+    }
+
+    function calculateAutoInstallTotal() {
+        const cart = getActiveCart();
+        return cart.reduce((sum, p) => sum + ((p.installPrice || 0) * p.qty), 0);
+    }
+
+    function getInstallCostValue() {
+        const isCustom = document.getElementById('chk-install-custom') ? document.getElementById('chk-install-custom').checked : false;
+        if (isCustom) {
+            const customEl = document.getElementById('cfg-install-custom');
+            return parseInt(customEl ? customEl.value : 0, 10) || 0;
+        } else {
+            return calculateAutoInstallTotal();
+        }
     }
 
     function showToast(msg) {
@@ -908,7 +1250,7 @@
     }
 
     function showPage(pageId) {
-        ['page-machines', 'page-parts', 'page-detail', 'page-cart', 'page-history', 'page-worklist'].forEach(id => {
+        ['page-machines', 'page-products', 'page-parts', 'page-detail', 'page-cart', 'page-history', 'page-worklist'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.classList.add('hidden');
         });
@@ -928,7 +1270,12 @@
         if (navW) navW.classList.toggle('active', tab === 'worklist');
 
         if (tab === 'machines') {
-            showPage('page-machines');
+            if (currentAppMode === 'machines') {
+                showPage('page-machines');
+            } else {
+                renderProductCategories();
+                showPage('page-products');
+            }
         } else if (tab === 'cart') {
             setCurrentDateDisplay();
             renderCartPage();
@@ -943,7 +1290,8 @@
     }
 
     function updateCartBadge() {
-        const totalCount = cartParts.reduce((sum, p) => sum + p.qty, 0);
+        const cart = getActiveCart();
+        const totalCount = cart.reduce((sum, p) => sum + p.qty, 0);
         const badge = document.getElementById('cart-badge');
         if (badge) {
             if (totalCount > 0) {
@@ -953,34 +1301,75 @@
                 badge.classList.add('hidden');
             }
         }
-        localStorage.setItem('app_cartParts', JSON.stringify(cartParts));
+        
+        if (currentAppMode === 'machines') {
+            localStorage.setItem('app_cartPartsTech', JSON.stringify(cartPartsTech));
+        } else {
+            localStorage.setItem('app_cartPartsSales', JSON.stringify(cartPartsSales));
+        }
     }
 
     function saveHistory() {
-        localStorage.setItem('app_partHistory', JSON.stringify(partHistory));
+        if (currentAppMode === 'machines') {
+            localStorage.setItem('app_partHistoryTech', JSON.stringify(partHistoryTech));
+        } else {
+            localStorage.setItem('app_partHistorySales', JSON.stringify(partHistorySales));
+        }
     }
 
     function addToHistory(part) {
-        partHistory = partHistory.filter(p => !(p.id === part.id && p.machineId === part.machineId));
-        partHistory.unshift({ ...part });
-        if (partHistory.length > 20) {
-            partHistory.pop();
+        let history = getActiveHistory();
+        history = history.filter(p => !(p.id === part.id && p.machineId === part.machineId));
+        history.unshift({ ...part });
+        if (history.length > 20) {
+            history.pop();
         }
+        setActiveHistory(history);
         saveHistory();
     }
 
     function removeHistoryItem(index) {
-        partHistory.splice(index, 1);
+        let history = getActiveHistory();
+        history.splice(index, 1);
+        setActiveHistory(history);
         saveHistory();
         renderHistoryPage();
     }
 
     function clearHistory() {
-        if (confirm("すべての部品選択履歴を削除しますか？")) {
-            partHistory = [];
+        if (confirm("すべての選択履歴を削除しますか？")) {
+            setActiveHistory([]);
             saveHistory();
             renderHistoryPage();
         }
+    }
+
+    function toggleFavorite(machineId, partId, event) {
+        event.stopPropagation();
+        const key = `${machineId}|${partId}`;
+        
+        if (currentAppMode === 'machines') {
+            const index = favorites.indexOf(key);
+            if (index > -1) {
+                favorites.splice(index, 1);
+                showToast("お気に入りから解除しました");
+            } else {
+                favorites.push(key);
+                showToast("お気に入りに追加しました ⭐");
+            }
+            localStorage.setItem('app_favorites', JSON.stringify(favorites));
+        } else {
+            const index = productFavorites.indexOf(key);
+            if (index > -1) {
+                productFavorites.splice(index, 1);
+                showToast("お気に入りから解除しました");
+            } else {
+                productFavorites.push(key);
+                showToast("お気に入りに追加しました ⭐");
+            }
+            localStorage.setItem('app_productFavorites', JSON.stringify(productFavorites));
+        }
+        renderParts();
     }
 
     function saveWorkOrder() {
@@ -993,25 +1382,27 @@
 
         const now = new Date();
         const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
-        
-        const baseEl = document.getElementById('cfg-base');
-        const trafficEl = document.getElementById('cfg-traffic');
-        const hoursEl = document.getElementById('cfg-hours');
         const totalEl = document.getElementById('cart-total');
 
-        const orderData = {
+        let orderData = {
             id: Date.now(),
             date: dateStr,
             clientName: clientName,
-            basePrice: baseEl ? parseInt(baseEl.value, 10) || 0 : 0,
-            trafficPrice: trafficEl ? parseInt(trafficEl.value, 10) || 0 : 0,
-            hours: hoursEl ? parseFloat(hoursEl.value) || 0 : 0,
-            parts: [...cartParts],
+            parts: [...getActiveCart()],
             totalAmount: totalEl ? totalEl.innerText : "￥0"
         };
 
-        workOrders.unshift(orderData);
-        localStorage.setItem('app_workOrders', JSON.stringify(workOrders));
+        if (currentAppMode === 'machines') {
+            orderData.basePrice = getCostValue('base');
+            orderData.trafficPrice = getCostValue('traffic');
+            orderData.laborPrice = getCostValue('labor');
+            workOrdersTech.unshift(orderData);
+            localStorage.setItem('app_workOrdersTech', JSON.stringify(workOrdersTech));
+        } else {
+            orderData.installPrice = getInstallCostValue();
+            workOrdersSales.unshift(orderData);
+            localStorage.setItem('app_workOrdersSales', JSON.stringify(workOrdersSales));
+        }
 
         showToast("作業内容を保存しました");
         clearCartPartsWithoutConfirm();
@@ -1020,28 +1411,72 @@
     }
 
     function exportWorkOrdersCSV() {
-        if (workOrders.length === 0) {
+        const orders = getActiveWorkOrders();
+        if (orders.length === 0) {
             alert("出力する作業一覧がありません。");
             return;
         }
 
         let csvContent = "\uFEFF";
-        csvContent += "日付,客先名,基本料金,交通費,作業時間,総合計金額,内訳部品\r\n";
+        if (currentAppMode === 'machines') {
+            csvContent += "日付,客先名,基本料金,交通費,作業費,部品名,部品番号,数量,単価,小計,総合計\r\n";
+            orders.forEach(order => {
+                const clientEscaped = `"${(order.clientName || "").replace(/"/g, '""')}"`;
+                const parts = order.parts && order.parts.length > 0 ? order.parts : [{ name: "", id: "", qty: 0, price: 0 }];
 
-        workOrders.forEach(order => {
-            const partsStr = order.parts.map(p => `${p.name} (${p.id}) × ${p.qty}`).join(" / ");
-            const clientEscaped = `"${order.clientName.replace(/"/g, '""')}"`;
-            const partsEscaped = `"${partsStr.replace(/"/g, '""')}"`;
-            const totalEscaped = `"${order.totalAmount.replace(/"/g, '""')}"`;
+                parts.forEach((p, idx) => {
+                    const dateVal = (idx === 0) ? (order.date || "") : "";
+                    const clientVal = (idx === 0) ? clientEscaped : "";
+                    const baseVal = (idx === 0) ? (order.basePrice || 0) : "";
+                    const trafficVal = (idx === 0) ? (order.trafficPrice || 0) : "";
+                    const laborVal = (idx === 0) ? (order.laborPrice || 0) : "";
 
-            csvContent += `${order.date},${clientEscaped},${order.basePrice},${order.trafficPrice},${order.hours},${totalEscaped},${partsEscaped}\r\n`;
-        });
+                    const pName = `"${(p.name || "").replace(/"/g, '""')}"`;
+                    const pId = `"${(p.id || "").replace(/"/g, '""')}"`;
+                    const pQty = p.qty || 0;
+                    const pPrice = p.price || 0;
+                    const pSubtotal = pQty * pPrice;
 
+                    csvContent += `${dateVal},${clientVal},${baseVal},${trafficVal},${laborVal},${pName},${pId},${pQty},${pPrice},${pSubtotal},\r\n`;
+                });
+
+                const rawTotalNum = (order.totalAmount || "0").replace(/[^0-9]/g, '');
+                /* J列（10列目）にぴったり合わせるためカンマ9個を出力 */
+                csvContent += `,,,,,,,,,,${rawTotalNum}\r\n`;
+            });
+        } else {
+            /* 営業用CSV：C列に個別搬入設置費を出力 */
+            csvContent += "日付,客先名,搬入設置費,製品名,型式,商品コード,数量,単価,小計,総合計\r\n";
+            orders.forEach(order => {
+                const clientEscaped = `"${(order.clientName || "").replace(/"/g, '""')}"`;
+                const parts = order.parts && order.parts.length > 0 ? order.parts : [{ name: "", type: "", id: "", qty: 0, price: 0, installPrice: 0 }];
+
+                parts.forEach((p, idx) => {
+                    const dateVal = (idx === 0) ? (order.date || "") : "";
+                    const clientVal = (idx === 0) ? clientEscaped : "";
+                    const pInstallVal = p.installPrice || 0;
+
+                    const pName = `"${(p.name || "").replace(/"/g, '""')}"`;
+                    const pType = `"${(p.type || "").replace(/"/g, '""')}"`;
+                    const pId = `"${(p.id || "").replace(/"/g, '""')}"`;
+                    const pQty = p.qty || 0;
+                    const pPrice = p.price || 0;
+                    const pSubtotal = pQty * pPrice;
+
+                    csvContent += `${dateVal},${clientVal},${pInstallVal},${pName},${pType},${pId},${pQty},${pPrice},${pSubtotal},\r\n`;
+                });
+
+                const rawTotalNum = (order.totalAmount || "0").replace(/[^0-9]/g, '');
+                csvContent += `,,,,,,,,,,${rawTotalNum}\r\n`;
+            });
+        }
+
+        const modePrefix = currentAppMode === 'machines' ? '技術用' : '営業用';
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", `作業一覧_${new Date().toISOString().slice(0,10)}.csv`);
+        link.setAttribute("download", `作業一覧_${modePrefix}_${new Date().toISOString().slice(0,10)}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -1049,26 +1484,42 @@
     }
 
     function openWorkDetailModal(id) {
-        const order = workOrders.find(o => o.id === id);
+        const orders = getActiveWorkOrders();
+        const order = orders.find(o => o.id === id);
         if (!order) return;
 
-        document.getElementById('modal-client-title').innerText = `🏢 ${order.clientName}`;
-        document.getElementById('modal-date-text').innerText = `日時: ${order.date}`;
-        document.getElementById('modal-base-price').innerText = `￥${order.basePrice.toLocaleString()}`;
-        document.getElementById('modal-traffic-price').innerText = `￥${order.trafficPrice.toLocaleString()}`;
-        document.getElementById('modal-hours').innerText = `${order.hours.toFixed(1)} 時間`;
-        document.getElementById('modal-total-amount').innerText = order.totalAmount;
+        document.getElementById('modal-client-title').innerText = `🏢 ${order.clientName || ""}`;
+        document.getElementById('modal-date-text').innerText = `日時: ${order.date || ""}`;
+
+        const techCostsEl = document.getElementById('modal-tech-costs');
+        const salesCostsEl = document.getElementById('modal-sales-costs');
+
+        if (currentAppMode === 'machines') {
+            techCostsEl.classList.remove('hidden');
+            salesCostsEl.classList.add('hidden');
+            document.getElementById('modal-base-price').innerText = `￥${(order.basePrice || 0).toLocaleString()}`;
+            document.getElementById('modal-traffic-price').innerText = `￥${(order.trafficPrice || 0).toLocaleString()}`;
+            document.getElementById('modal-labor-price').innerText = `￥${(order.laborPrice || 0).toLocaleString()}`;
+        } else {
+            techCostsEl.classList.add('hidden');
+            salesCostsEl.classList.remove('hidden');
+            document.getElementById('modal-install-price').innerText = `￥${(order.installPrice || 0).toLocaleString()}`;
+        }
+
+        document.getElementById('modal-total-amount').innerText = order.totalAmount || "￥0";
 
         const partsContainer = document.getElementById('modal-parts-container');
         partsContainer.innerHTML = "";
         if (!order.parts || order.parts.length === 0) {
-            partsContainer.innerHTML = '<div style="color:#888; font-size:13px; padding:4px 0;">部品なし</div>';
+            partsContainer.innerHTML = '<div style="color:#888; font-size:13px; padding:4px 0;">項目なし</div>';
         } else {
             order.parts.forEach(p => {
                 const row = document.createElement('div');
                 row.className = 'row-info';
                 row.style.fontSize = '13px';
-                row.innerHTML = `<span>${p.name} (${p.id}) × ${p.qty}</span><span class="val">￥${(p.price * p.qty).toLocaleString()}</span>`;
+                const displayName = currentAppMode === 'products' ? (p.type || p.name) : p.name;
+                const singleUnitPrice = p.price || 0;
+                row.innerHTML = `<span>${displayName} (${p.id}) × ${p.qty}</span><span class="val">￥${(singleUnitPrice * p.qty).toLocaleString()}</span>`;
                 partsContainer.appendChild(row);
             });
         }
@@ -1087,16 +1538,26 @@
 
     function removeWorkOrder(id) {
         if (confirm("この作業履歴を削除しますか？")) {
-            workOrders = workOrders.filter(o => o.id !== id);
-            localStorage.setItem('app_workOrders', JSON.stringify(workOrders));
+            let orders = getActiveWorkOrders();
+            orders = orders.filter(o => o.id !== id);
+            setActiveWorkOrders(orders);
+            if (currentAppMode === 'machines') {
+                localStorage.setItem('app_workOrdersTech', JSON.stringify(orders));
+            } else {
+                localStorage.setItem('app_workOrdersSales', JSON.stringify(orders));
+            }
             renderWorkList();
         }
     }
 
     function clearAllWorkOrders() {
         if (confirm("すべての作業一覧を削除しますか？")) {
-            workOrders = [];
-            localStorage.setItem('app_workOrders', JSON.stringify(workOrders));
+            setActiveWorkOrders([]);
+            if (currentAppMode === 'machines') {
+                localStorage.setItem('app_workOrdersTech', JSON.stringify([]));
+            } else {
+                localStorage.setItem('app_workOrdersSales', JSON.stringify([]));
+            }
             renderWorkList();
         }
     }
@@ -1106,12 +1567,13 @@
         if (!container) return;
 
         container.innerHTML = "";
-        if (workOrders.length === 0) {
+        const orders = getActiveWorkOrders();
+        if (orders.length === 0) {
             container.innerHTML = '<div style="color:#888; font-size:14px; padding:10px 0; text-align:center;">保存された作業一覧はありません</div>';
             return;
         }
 
-        workOrders.forEach((order) => {
+        orders.forEach((order) => {
             const card = document.createElement('div');
             card.className = 'work-card';
             card.onclick = () => openWorkDetailModal(order.id);
@@ -1132,6 +1594,11 @@
         if (input) input.click();
     }
 
+    function triggerProductCSVImport() {
+        const input = document.getElementById('product-csv-file-input');
+        if (input) input.click();
+    }
+
     function handleCSVFile(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -1139,6 +1606,17 @@
         const reader = new FileReader();
         reader.onload = function(e) {
             parseAndLoadCSV(e.target.result);
+        };
+        reader.readAsText(file, 'Shift_JIS');
+    }
+
+    function handleProductCSVFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            parseAndLoadProductCSV(e.target.result);
         };
         reader.readAsText(file, 'Shift_JIS');
     }
@@ -1232,6 +1710,68 @@
         if (csvInput) csvInput.value = "";
     }
 
+    function parseAndLoadProductCSV(csvText) {
+        if (csvText.startsWith('\ufeff')) {
+            csvText = csvText.slice(1);
+        }
+
+        const lines = csvText.split(/\r\n|\n/);
+        if (lines.length < 2) {
+            alert("CSVファイルが空かフォーマットが不適切です。");
+            return;
+        }
+
+        const newProducts = [];
+        const newCategorySet = new Set();
+
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            const cols = parseCSVLine(line);
+            if (cols.length >= 5) {
+                const category = cols[0];
+                const prodCode = cols[1];
+                const prodName = cols[2];
+                const prodType = cols[3];
+                
+                const rawPrice = cols[4].replace(/[^0-9]/g, '');
+                const price = parseInt(rawPrice, 10) || 0;
+
+                const rawInstall = (cols[5] || "").replace(/[^0-9]/g, '');
+                const installPrice = parseInt(rawInstall, 10) || 0;
+
+                if (category && prodCode && prodName) {
+                    newCategorySet.add(category);
+                    newProducts.push({
+                        machineId: category,
+                        id: prodCode,
+                        name: prodName,
+                        type: prodType,
+                        price: price,
+                        installPrice: installPrice
+                    });
+                }
+            }
+        }
+
+        if (newProducts.length > 0) {
+            productCategories = Array.from(newCategorySet);
+            productsData = newProducts;
+
+            localStorage.setItem('app_productCategories', JSON.stringify(productCategories));
+            localStorage.setItem('app_productsData', JSON.stringify(productsData));
+
+            renderProductCategories();
+            showToast(`${newProducts.length}件の製品価格データを読み込みました`);
+        } else {
+            alert("有効なデータが見つかりませんでした。列順（種別, 商品コード, 製品名, 型式, 価格, 搬入設置費）をご確認ください。");
+        }
+
+        const productCsvInput = document.getElementById('product-csv-file-input');
+        if (productCsvInput) productCsvInput.value = "";
+    }
+
     function renderMachines() {
         const searchEl = document.getElementById('search-machine');
         const keyword = searchEl ? searchEl.value.toLowerCase() : "";
@@ -1253,10 +1793,47 @@
         });
     }
 
+    function renderProductCategories() {
+        const searchEl = document.getElementById('search-product-category');
+        const keyword = searchEl ? searchEl.value.toLowerCase() : "";
+        const container = document.getElementById('product-category-list');
+        if (!container) return;
+        container.innerHTML = "";
+
+        if (productCategories.length === 0) {
+            container.innerHTML = '<div style="color:#888; font-size:14px; padding:20px 0; text-align:center;">「製品更新」から製品価格データを読み込んでください</div>';
+            return;
+        }
+
+        productCategories.filter(c => c.toLowerCase().includes(keyword)).forEach(c => {
+            const item = document.createElement('div');
+            item.className = 'list-item';
+            item.innerHTML = `<span class="list-item-title">${c}</span><span class="arrow">›</span>`;
+            item.onclick = () => selectProductCategory(c);
+            container.appendChild(item);
+        });
+    }
+
     function selectMachine(machineName) {
         currentMachine = machineName;
         const titleEl = document.getElementById('parts-page-title');
         if (titleEl) titleEl.innerText = machineName;
+
+        const backBtn = document.getElementById('parts-back-btn');
+        if (backBtn) backBtn.onclick = () => showPage('page-machines');
+
+        renderParts();
+        showPage('page-parts');
+    }
+
+    function selectProductCategory(categoryName) {
+        currentMachine = categoryName;
+        const titleEl = document.getElementById('parts-page-title');
+        if (titleEl) titleEl.innerText = categoryName;
+
+        const backBtn = document.getElementById('parts-back-btn');
+        if (backBtn) backBtn.onclick = () => showPage('page-products');
+
         renderParts();
         showPage('page-parts');
     }
@@ -1268,13 +1845,24 @@
         if (!container) return;
         container.innerHTML = "";
 
-        const filtered = partsData.filter(p => 
+        let dataset = (currentAppMode === 'machines') ? partsData : productsData;
+        let favDataset = (currentAppMode === 'machines') ? favorites : productFavorites;
+
+        const filtered = dataset.filter(p => 
             p.machineId === currentMachine && 
-            (p.name.toLowerCase().includes(keyword) || p.id.toLowerCase().includes(keyword))
+            (p.name.toLowerCase().includes(keyword) || p.id.toLowerCase().includes(keyword) || (p.type && p.type.toLowerCase().includes(keyword)))
         );
 
+        filtered.sort((a, b) => {
+            const aKey = `${a.machineId}|${a.id}`;
+            const bKey = `${b.machineId}|${b.id}`;
+            const aFav = favDataset.includes(aKey) ? 1 : 0;
+            const bFav = favDataset.includes(bKey) ? 1 : 0;
+            return bFav - aFav;
+        });
+
         if (filtered.length === 0) {
-            container.innerHTML = '<div style="color:#888; font-size:14px; padding:20px 0; text-align:center;">該当する部品がありません</div>';
+            container.innerHTML = '<div style="color:#888; font-size:14px; padding:20px 0; text-align:center;">該当する項目がありません</div>';
             return;
         }
 
@@ -1282,31 +1870,75 @@
             const item = document.createElement('div');
             item.className = 'parts-item';
             
+            const favKey = `${p.machineId}|${p.id}`;
+            const isFav = favDataset.includes(favKey);
+
+            const defaultIcon = (currentAppMode === 'machines') ? '📷' : '💼';
             const imgHtml = p.imageUrl 
-                ? `<div class="parts-img-thumb"><img src="${p.imageUrl}" alt="" referrerpolicy="no-referrer" onerror="this.style.display='none'; this.parentElement.innerText='📷';"></div>`
-                : `<div class="parts-img-thumb">📷</div>`;
+                ? `<div class="parts-img-thumb"><img src="${p.imageUrl}" alt="" referrerpolicy="no-referrer" onerror="this.style.display='none'; this.parentElement.innerText='${defaultIcon}';"></div>`
+                : `<div class="parts-img-thumb">${defaultIcon}</div>`;
+
+            const codeLabel = (currentAppMode === 'machines') ? '部品番号' : '商品コード';
+
+            let mainTitle = p.name;
+            let subText = `${codeLabel}: ${p.id}`;
+            let priceText = `￥${p.price.toLocaleString()}`;
+
+            if (currentAppMode === 'products') {
+                mainTitle = p.type ? p.type : p.name;
+                subText = `${codeLabel}: ${p.id} | 品名: ${p.name}`;
+                priceText = `￥${p.price.toLocaleString()} ${p.installPrice ? `<span style="font-size:11px; color:#64748b;">(設置費 ￥${p.installPrice.toLocaleString()})</span>` : ''}`;
+            }
 
             item.innerHTML = `
-                ${imgHtml}
-                <div class="parts-info">
-                    <div class="parts-name">${p.name}</div>
-                    <div class="parts-sub">部品番号 : ${p.id}</div>
-                    <div class="parts-price">￥${p.price.toLocaleString()}</div>
+                <div class="parts-content">
+                    ${imgHtml}
+                    <div class="parts-info">
+                        <div class="parts-name">${mainTitle}</div>
+                        <div class="parts-sub">${subText}</div>
+                        <div class="parts-price">${priceText}</div>
+                    </div>
                 </div>
-                <span class="arrow">›</span>
+                <button class="fav-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite('${p.machineId}', '${p.id}', event)">★</button>
             `;
-            item.onclick = () => selectPart(p);
+            item.querySelector('.parts-content').onclick = () => selectPart(p);
             container.appendChild(item);
         });
     }
 
     function selectPart(part) {
         selectedPart = part;
-        document.getElementById('dt-name').innerText = part.name;
+        document.getElementById('dt-name').innerText = (currentAppMode === 'products' && part.type) ? part.type : part.name;
         document.getElementById('dt-code').innerText = part.id;
         document.getElementById('dt-price').innerText = '￥' + part.price.toLocaleString();
         document.getElementById('dt-machine-id').innerText = part.machineId;
         document.getElementById('dt-qty').value = "1";
+
+        const rowType = document.getElementById('row-dt-type');
+        const labelType = document.getElementById('label-dt-type');
+
+        if (currentAppMode === 'products') {
+            labelType.innerText = '製品名';
+            document.getElementById('dt-type-val').innerText = part.name;
+            rowType.style.display = 'flex';
+        } else if (part.type) {
+            labelType.innerText = '型式';
+            document.getElementById('dt-type-val').innerText = part.type;
+            rowType.style.display = 'flex';
+        } else {
+            rowType.style.display = 'none';
+        }
+
+        const rowInstall = document.getElementById('row-dt-install');
+        if (part.installPrice) {
+            document.getElementById('dt-install-val').innerText = '￥' + part.installPrice.toLocaleString();
+            rowInstall.style.display = 'flex';
+        } else {
+            rowInstall.style.display = 'none';
+        }
+
+        const backBtn = document.getElementById('detail-back-btn');
+        if (backBtn) backBtn.onclick = () => showPage('page-parts');
 
         const imgEl = document.getElementById('dt-img');
         if (part.imageUrl) {
@@ -1324,14 +1956,16 @@
     function addToCart() {
         const qtyEl = document.getElementById('dt-qty');
         const qty = qtyEl ? parseInt(qtyEl.value, 10) : 1;
+        let cart = getActiveCart();
         
-        const existing = cartParts.find(p => p.id === selectedPart.id && p.machineId === selectedPart.machineId);
+        const existing = cart.find(p => p.id === selectedPart.id && p.machineId === selectedPart.machineId);
         if (existing) {
             existing.qty += qty;
         } else {
-            cartParts.push({ ...selectedPart, qty });
+            cart.push({ ...selectedPart, qty });
         }
 
+        setActiveCart(cart);
         addToHistory(selectedPart);
 
         updateCartBadge();
@@ -1340,19 +1974,24 @@
     }
 
     function addFromHistory(machineId, id) {
-        const targetPart = partsData.find(p => p.machineId === machineId && p.id === id);
+        let targetPart = partsData.find(p => p.machineId === machineId && p.id === id);
         if (!targetPart) {
-            alert("該当する部品データが見つかりません。");
+            targetPart = productsData.find(p => p.machineId === machineId && p.id === id);
+        }
+        if (!targetPart) {
+            alert("該当するデータが見つかりません。");
             return;
         }
 
-        const existing = cartParts.find(p => p.id === targetPart.id && p.machineId === targetPart.machineId);
+        let cart = getActiveCart();
+        const existing = cart.find(p => p.id === targetPart.id && p.machineId === targetPart.machineId);
         if (existing) {
             existing.qty += 1;
         } else {
-            cartParts.push({ ...targetPart, qty: 1 });
+            cart.push({ ...targetPart, qty: 1 });
         }
 
+        setActiveCart(cart);
         updateCartBadge();
         showToast("履歴からカートに追加しました");
     }
@@ -1361,12 +2000,14 @@
         const container = document.getElementById('cart-parts-list');
         if (!container) return;
 
+        const cart = getActiveCart();
         container.innerHTML = "";
-        if (cartParts.length === 0) {
-            container.innerHTML = '<div style="color:#888; font-size:14px; padding:10px 0;">部品はありません</div>';
+        if (cart.length === 0) {
+            container.innerHTML = '<div style="color:#888; font-size:14px; padding:10px 0;">項目はありません</div>';
         } else {
-            cartParts.forEach((p, index) => {
-                const subtotal = p.price * p.qty;
+            cart.forEach((p, index) => {
+                const singleUnitPrice = p.price || 0;
+                const subtotal = singleUnitPrice * p.qty;
                 const item = document.createElement('div');
                 item.className = 'cart-item-block';
                 
@@ -1375,12 +2016,14 @@
                     qtyOptions += `<option value="${i}" ${p.qty === i ? 'selected' : ''}>${i}</option>`;
                 }
 
+                const displayName = currentAppMode === 'products' ? (p.type || p.name) : p.name;
+
                 item.innerHTML = `
                     <div class="cart-item-header">
-                        <div class="cart-item-name">${p.name}</div>
+                        <div class="cart-item-name">${displayName}</div>
                         <button class="btn-delete" onclick="removeCartItem(${index})">削除</button>
                     </div>
-                    <div class="cart-item-sub">機器: ${p.machineId} | 部品番号: ${p.id} | 単価: ￥${p.price.toLocaleString()}</div>
+                    <div class="cart-item-sub">区分: ${p.machineId} | 番号: ${p.id} | 単価: ￥${singleUnitPrice.toLocaleString()}</div>
                     <div class="cart-item-controls">
                         <div>
                             <span style="font-size:13px; color:#555; margin-right:4px;">数量:</span>
@@ -1395,6 +2038,23 @@
             });
         }
 
+        const techSettings = document.getElementById('cart-tech-settings');
+        const salesSettings = document.getElementById('cart-sales-settings');
+
+        if (currentAppMode === 'machines') {
+            techSettings.classList.remove('hidden');
+            salesSettings.classList.add('hidden');
+        } else {
+            techSettings.classList.add('hidden');
+            salesSettings.classList.remove('hidden');
+
+            const autoInput = document.getElementById('cfg-install-auto');
+            if (autoInput) {
+                const autoVal = calculateAutoInstallTotal();
+                autoInput.value = `￥${autoVal.toLocaleString()} (自動計算)`;
+            }
+        }
+
         calculateCart();
     }
 
@@ -1402,22 +2062,25 @@
         const historyContainer = document.getElementById('history-parts-list');
         if (!historyContainer) return;
 
+        const history = getActiveHistory();
         historyContainer.innerHTML = "";
-        if (partHistory.length === 0) {
+        if (history.length === 0) {
             historyContainer.innerHTML = '<div style="color:#888; font-size:14px; padding:10px 0;">履歴はありません</div>';
         } else {
-            partHistory.forEach((p, index) => {
+            history.forEach((p, index) => {
                 const historyItem = document.createElement('div');
                 historyItem.className = 'cart-item-block';
+                const singleUnitPrice = p.price || 0;
+                const displayName = currentAppMode === 'products' ? (p.type || p.name) : p.name;
                 historyItem.innerHTML = `
                     <div class="cart-item-header">
-                        <div class="cart-item-name">${p.name}</div>
+                        <div class="cart-item-name">${displayName}</div>
                         <div class="history-actions">
                             <button class="btn-add-history" onclick="addFromHistory('${p.machineId}', '${p.id}')">追加</button>
                             <button class="btn-delete" onclick="removeHistoryItem(${index})">削除</button>
                         </div>
                     </div>
-                    <div class="cart-item-sub">機器: ${p.machineId} | 部品番号: ${p.id} | 単価: ￥${p.price.toLocaleString()}</div>
+                    <div class="cart-item-sub">区分: ${p.machineId} | 番号: ${p.id} | 単価: ￥${singleUnitPrice.toLocaleString()}</div>
                 `;
                 historyContainer.appendChild(historyItem);
             });
@@ -1425,13 +2088,17 @@
     }
 
     function updateCartItemQty(index, newQty) {
-        cartParts[index].qty = parseInt(newQty, 10);
+        let cart = getActiveCart();
+        cart[index].qty = parseInt(newQty, 10);
+        setActiveCart(cart);
         updateCartBadge();
         renderCartPage();
     }
 
     function removeCartItem(index) {
-        cartParts.splice(index, 1);
+        let cart = getActiveCart();
+        cart.splice(index, 1);
+        setActiveCart(cart);
         updateCartBadge();
         renderCartPage();
     }
@@ -1443,39 +2110,64 @@
     }
 
     function clearCartPartsWithoutConfirm() {
-        cartParts = [];
+        setActiveCart([]);
         updateCartBadge();
 
-        const baseEl = document.getElementById('cfg-base');
-        const trafficEl = document.getElementById('cfg-traffic');
-        const hoursEl = document.getElementById('cfg-hours');
-        const clientNameInput = document.getElementById('input-client-name');
+        if (currentAppMode === 'machines') {
+            ['base', 'traffic', 'labor'].forEach(type => {
+                const chk = document.getElementById(`chk-${type}-custom`);
+                if (chk) chk.checked = false;
+                
+                const selectEl = document.getElementById(`cfg-${type}`);
+                const customEl = document.getElementById(`cfg-${type}-custom`);
 
-        if (baseEl) baseEl.value = "0";
-        if (trafficEl) trafficEl.value = "0";
-        if (hoursEl) hoursEl.value = "0";
+                if (selectEl) {
+                    selectEl.value = "0";
+                    selectEl.classList.remove('hidden');
+                }
+                if (customEl) {
+                    customEl.value = "";
+                    customEl.classList.add('hidden');
+                }
+            });
+        } else {
+            const chk = document.getElementById('chk-install-custom');
+            if (chk) chk.checked = false;
+            
+            const autoEl = document.getElementById('cfg-install-auto');
+            const customEl = document.getElementById('cfg-install-custom');
+
+            if (autoEl) autoEl.classList.remove('hidden');
+            if (customEl) {
+                customEl.value = "";
+                customEl.classList.add('hidden');
+            }
+        }
+
+        const clientNameInput = document.getElementById('input-client-name');
         if (clientNameInput) clientNameInput.value = "";
 
         renderCartPage();
     }
 
     function calculateCart() {
-        const baseEl = document.getElementById('cfg-base');
-        const trafficEl = document.getElementById('cfg-traffic');
-        const hoursEl = document.getElementById('cfg-hours');
         const totalEl = document.getElementById('cart-total');
-
         if (!totalEl) return;
 
-        const basePrice = baseEl ? (parseInt(baseEl.value, 10) || 0) : 0;
-        const trafficPrice = trafficEl ? (parseInt(trafficEl.value, 10) || 0) : 0;
-        const hours = hoursEl ? (parseFloat(hoursEl.value) || 0) : 0;
-        
-        const laborPrice = hours * 10000;
-        const partsTotal = cartParts.reduce((sum, p) => sum + (p.price * p.qty), 0);
-        const grandTotal = basePrice + trafficPrice + laborPrice + partsTotal;
-
-        totalEl.innerText = '￥' + grandTotal.toLocaleString();
+        const cart = getActiveCart();
+        if (currentAppMode === 'machines') {
+            const basePrice = getCostValue('base');
+            const trafficPrice = getCostValue('traffic');
+            const laborPrice = getCostValue('labor');
+            const partsTotal = cart.reduce((sum, p) => sum + (p.price * p.qty), 0);
+            const grandTotal = basePrice + trafficPrice + laborPrice + partsTotal;
+            totalEl.innerText = '￥' + grandTotal.toLocaleString();
+        } else {
+            const installPrice = getInstallCostValue();
+            const partsTotal = cart.reduce((sum, p) => sum + (p.price * p.qty), 0);
+            const grandTotal = installPrice + partsTotal;
+            totalEl.innerText = '￥' + grandTotal.toLocaleString();
+        }
     }
 </script>
 
