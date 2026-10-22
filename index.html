@@ -25,17 +25,51 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", sans-serif;
             background: #eef1f5;
             color: #222222;
+            height: 100%;
+            overflow: hidden;
         }
 
         .app {
             max-width: 430px;
-            min-height: 100vh;
+            height: 100vh;
             margin: 0 auto;
             background: #ffffff;
             position: relative;
-            padding-bottom: 80px;
+            display: flex;
+            flex-direction: column;
             box-shadow: 0 0 20px rgba(0,0,0,0.08);
-            overflow-x: hidden;
+            overflow: hidden;
+        }
+
+        /* 各ページのベース */
+        .page-view {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow-y: auto;
+            padding-bottom: 80px;
+        }
+
+        /* カート専用ページをフレックスレイアウトで上下固定を実現 */
+        #page-cart {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            padding-bottom: 65px; /* ボトムナビ分 */
+        }
+
+        .cart-fixed-top {
+            flex-shrink: 0;
+            background: #ffffff;
+            z-index: 50;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .cart-scrollable-body {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 0 18px 20px;
         }
 
         /* ログイン画面 styles */
@@ -44,9 +78,14 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            height: 100vh;
             padding: 20px;
             background: #eef1f5;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            z-index: 3000;
         }
         .login-card {
             background: #ffffff;
@@ -169,6 +208,7 @@
             padding: 0 18px;
             font-size: 20px;
             color: #555;
+            flex-shrink: 0;
         }
         .menu-btn {
             cursor: pointer;
@@ -195,6 +235,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-shrink: 0;
         }
 
         .btn-csv {
@@ -222,7 +263,7 @@
             border-radius: 20px;
             font-size: 14px;
             font-weight: 600;
-            z-index: 1000;
+            z-index: 3000;
             opacity: 0;
             transition: opacity 0.3s ease;
             pointer-events: none;
@@ -234,6 +275,7 @@
         .search-box {
             margin: 0 18px 14px;
             position: relative;
+            flex-shrink: 0;
         }
         .search-box input {
             width: 100%;
@@ -448,43 +490,37 @@
             cursor: pointer;
         }
 
+        /* カート上部固定ヘッダー（日付＋総合計） */
         .cart-date-display {
             font-size: 13px;
             color: #64748b;
             font-weight: 600;
-            padding: 0 18px 6px;
-            position: sticky;
-            top: 0;
-            background: #ffffff;
-            z-index: 51;
+            padding: 0 18px 8px;
             display: flex;
             align-items: center;
             gap: 4px;
         }
 
         .cart-total-card {
-            background: #ffffff;
-            border: 1px solid #eef0f2;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
             border-radius: 14px;
-            padding: 16px;
-            margin: 0 18px 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-            position: sticky;
-            top: 26px;
-            z-index: 50;
+            padding: 14px 16px;
+            margin: 0 18px 12px;
         }
         .cart-total-label {
             font-size: 13px;
-            color: #777;
+            color: #64748b;
+            font-weight: 600;
         }
         .cart-total-val {
             font-size: 26px;
             font-weight: 800;
-            margin-top: 4px;
+            margin-top: 2px;
+            color: #0f172a;
         }
 
         .cart-section {
-            padding: 0 18px;
             margin-bottom: 20px;
         }
         .cart-section-title {
@@ -605,7 +641,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 1000;
+            z-index: 2000;
             padding: 20px;
         }
         .modal-card {
@@ -775,7 +811,7 @@
     </div>
 
     <!-- 1. 技術用（機器一覧）画面 -->
-    <div id="page-machines">
+    <div id="page-machines" class="page-view">
         <div class="header">
             <button class="menu-btn" onclick="openSideMenu()">☰</button>
         </div>
@@ -790,12 +826,12 @@
     </div>
 
     <!-- 1-B. 営業用（種別一覧）画面 -->
-    <div id="page-products" class="hidden">
+    <div id="page-products" class="page-view hidden">
         <div class="header">
             <button class="menu-btn" onclick="openSideMenu()">☰</button>
         </div>
         <div class="page-title">
-            <span>製品価格</span>
+            <span>製品リスト</span>
             <button class="btn-csv" onclick="triggerProductCSVImport()">📂 製品更新</button>
         </div>
         <div class="search-box">
@@ -805,7 +841,7 @@
     </div>
 
     <!-- 2. 部品・製品一覧画面 -->
-    <div id="page-parts" class="hidden">
+    <div id="page-parts" class="page-view hidden">
         <div class="header">
             <button class="back-btn" id="parts-back-btn" onclick="showPage('page-machines')">←</button>
         </div>
@@ -819,7 +855,7 @@
     </div>
 
     <!-- 3. 詳細画面 -->
-    <div id="page-detail" class="hidden">
+    <div id="page-detail" class="page-view hidden">
         <div class="header">
             <button class="back-btn" id="detail-back-btn" onclick="showPage('page-parts')">←</button>
         </div>
@@ -870,99 +906,103 @@
         </div>
     </div>
 
-    <!-- 4. カート画面 -->
+    <!-- 4. カート画面（完全固定＆スクロール分離型） -->
     <div id="page-cart" class="hidden">
-        <div class="header">
-            <button class="menu-btn" onclick="openSideMenu()">☰</button>
-        </div>
-        <div class="page-title" style="justify-content: center; color: #1f385c;">カート</div>
-
-        <div class="cart-date-display" id="cart-current-date">日付: -</div>
-
-        <div class="cart-total-card">
-            <div class="cart-total-label">総合計</div>
-            <div class="cart-total-val" id="cart-total">¥0</div>
-        </div>
-
-        <div class="cart-section">
-            <div class="form-label-header">
-                <label class="form-label">客先名</label>
+        <!-- 上部固定エリア（メニュー、タイトル、日付、総合計） -->
+        <div class="cart-fixed-top">
+            <div class="header">
+                <button class="menu-btn" onclick="openSideMenu()">☰</button>
             </div>
-            <input type="text" id="input-client-name" class="text-input" placeholder="客先名を入力">
-
-            <!-- 技術用料金設定 -->
-            <div id="cart-tech-settings">
-                <!-- 基本料金 -->
-                <div class="form-label-header">
-                    <label class="form-label">基本料金</label>
-                    <label class="toggle-custom-label">
-                        <input type="checkbox" id="chk-base-custom" onchange="toggleCustomInput('base')"> 直接入力
-                    </label>
-                </div>
-                <select class="select-input" id="cfg-base" onchange="calculateCart()">
-                    <option value="0" selected>0</option>
-                    <option value="8000">8,000</option>
-                    <option value="10000">10,000</option>
-                </select>
-                <input type="number" id="cfg-base-custom" class="text-input hidden" placeholder="金額を入力（円）" oninput="calculateCart()">
-
-                <!-- 交通費 -->
-                <div class="form-label-header">
-                    <label class="form-label">交通費</label>
-                    <label class="toggle-custom-label">
-                        <input type="checkbox" id="chk-traffic-custom" onchange="toggleCustomInput('traffic')"> 直接入力
-                    </label>
-                </div>
-                <select class="select-input" id="cfg-traffic" onchange="calculateCart()"></select>
-                <input type="number" id="cfg-traffic-custom" class="text-input hidden" placeholder="金額を入力（円）" oninput="calculateCart()">
-
-                <!-- 作業費 -->
-                <div class="form-label-header">
-                    <label class="form-label">作業費</label>
-                    <label class="toggle-custom-label">
-                        <input type="checkbox" id="chk-labor-custom" onchange="toggleCustomInput('labor')"> 直接入力
-                    </label>
-                </div>
-                <select class="select-input" id="cfg-labor" onchange="calculateCart()"></select>
-                <input type="number" id="cfg-labor-custom" class="text-input hidden" placeholder="金額を入力（円）" oninput="calculateCart()">
-            </div>
-
-            <!-- 営業用料金設定 -->
-            <div id="cart-sales-settings" class="hidden">
-                <div class="form-label-header">
-                    <label class="form-label">搬入設置費</label>
-                    <label class="toggle-custom-label">
-                        <input type="checkbox" id="chk-install-custom" onchange="toggleCustomInput('install')"> 直接入力
-                    </label>
-                </div>
-                <input type="text" id="cfg-install-auto" class="text-input" readonly value="￥0 (自動計算)">
-                <input type="number" id="cfg-install-custom" class="text-input hidden" placeholder="金額を入力（円）" oninput="calculateCart()">
+            <div class="page-title" style="justify-content: center; color: #1f385c; padding-bottom: 8px;">カート</div>
+            <div class="cart-date-display" id="cart-current-date">日付: -</div>
+            <div class="cart-total-card">
+                <div class="cart-total-label">総合計</div>
+                <div class="cart-total-val" id="cart-total">¥0</div>
             </div>
         </div>
 
-        <div class="cart-section">
-            <div class="cart-section-title">部品・製品</div>
-            <div id="cart-parts-list"></div>
-            <button class="btn-primary" style="margin-top: 20px;" onclick="clearCartParts()">クリア</button>
-            <button class="btn-primary" style="margin-top: 10px; background: #2563eb;" onclick="saveWorkOrder()">作業内容を保存</button>
+        <!-- スクロール可能エリア（客先名、料金設定、部品リスト、ボタン） -->
+        <div class="cart-scrollable-body">
+            <div class="cart-section">
+                <div class="form-label-header">
+                    <label class="form-label">客先名</label>
+                </div>
+                <input type="text" id="input-client-name" class="text-input" placeholder="客先名を入力">
+
+                <!-- 技術用料金設定 -->
+                <div id="cart-tech-settings">
+                    <!-- 基本料金 -->
+                    <div class="form-label-header">
+                        <label class="form-label">基本料金</label>
+                        <label class="toggle-custom-label">
+                            <input type="checkbox" id="chk-base-custom" onchange="toggleCustomInput('base')"> 直接入力
+                        </label>
+                    </div>
+                    <select class="select-input" id="cfg-base" onchange="calculateCart()">
+                        <option value="0" selected>0</option>
+                        <option value="8000">8,000</option>
+                        <option value="10000">10,000</option>
+                    </select>
+                    <input type="number" id="cfg-base-custom" class="text-input hidden" placeholder="金額を入力（円）" oninput="calculateCart()">
+
+                    <!-- 交通費 -->
+                    <div class="form-label-header">
+                        <label class="form-label">交通費</label>
+                        <label class="toggle-custom-label">
+                            <input type="checkbox" id="chk-traffic-custom" onchange="toggleCustomInput('traffic')"> 直接入力
+                        </label>
+                    </div>
+                    <select class="select-input" id="cfg-traffic" onchange="calculateCart()"></select>
+                    <input type="number" id="cfg-traffic-custom" class="text-input hidden" placeholder="金額を入力（円）" oninput="calculateCart()">
+
+                    <!-- 作業費 -->
+                    <div class="form-label-header">
+                        <label class="form-label">作業費</label>
+                        <label class="toggle-custom-label">
+                            <input type="checkbox" id="chk-labor-custom" onchange="toggleCustomInput('labor')"> 直接入力
+                        </label>
+                    </div>
+                    <select class="select-input" id="cfg-labor" onchange="calculateCart()"></select>
+                    <input type="number" id="cfg-labor-custom" class="text-input hidden" placeholder="金額を入力（円）" oninput="calculateCart()">
+                </div>
+
+                <!-- 営業用料金設定 -->
+                <div id="cart-sales-settings" class="hidden">
+                    <div class="form-label-header">
+                        <label class="form-label">搬入設置費</label>
+                        <label class="toggle-custom-label">
+                            <input type="checkbox" id="chk-install-custom" onchange="toggleCustomInput('install')"> 直接入力
+                        </label>
+                    </div>
+                    <input type="text" id="cfg-install-auto" class="text-input" readonly value="￥0 (自動計算)">
+                    <input type="number" id="cfg-install-custom" class="text-input hidden" placeholder="金額を入力（円）" oninput="calculateCart()">
+                </div>
+            </div>
+
+            <div class="cart-section">
+                <div class="cart-section-title">部品・製品</div>
+                <div id="cart-parts-list"></div>
+                <button class="btn-primary" style="margin-top: 20px;" onclick="clearCartParts()">クリア</button>
+                <button class="btn-primary" style="margin-top: 10px; background: #2563eb;" onclick="saveWorkOrder()">作業内容を保存</button>
+            </div>
         </div>
     </div>
 
     <!-- 5. 部品選択履歴画面 -->
-    <div id="page-history" class="hidden">
+    <div id="page-history" class="page-view hidden">
         <div class="header">
             <button class="menu-btn" onclick="openSideMenu()">☰</button>
         </div>
         <div class="page-title" style="justify-content: center; color: #1f385c;">選択履歴</div>
 
-        <div class="cart-section">
+        <div class="cart-section" style="padding: 0 18px;">
             <div id="history-parts-list"></div>
             <button class="btn-secondary" style="margin-top: 20px;" onclick="clearHistory()">すべての履歴を削除</button>
         </div>
     </div>
 
     <!-- 6. 作業内容一覧画面 -->
-    <div id="page-worklist" class="hidden">
+    <div id="page-worklist" class="page-view hidden">
         <div class="header">
             <button class="menu-btn" onclick="openSideMenu()">☰</button>
         </div>
@@ -971,7 +1011,7 @@
             <button class="btn-csv" onclick="exportWorkOrdersCSV()">📊 CSV出力</button>
         </div>
 
-        <div class="cart-section">
+        <div class="cart-section" style="padding: 0 18px;">
             <div id="worklist-container"></div>
             <button class="btn-secondary" style="margin-top: 20px;" onclick="clearAllWorkOrders()">すべての作業一覧を削除</button>
         </div>
@@ -1263,8 +1303,10 @@
             if (el) el.classList.add('hidden');
         });
         const target = document.getElementById(pageId);
-        if (target) target.classList.remove('hidden');
-        window.scrollTo(0, 0);
+        if (target) {
+            target.classList.remove('hidden');
+            target.scrollTop = 0;
+        }
     }
 
     function switchTab(tab) {
@@ -1413,8 +1455,6 @@
         }
 
         showToast("作業内容を保存しました");
-        clearCartPartsWithoutConfirm();
-        if (clientNameInput) clientNameInput.value = "";
         switchTab('worklist');
     }
 
@@ -1449,11 +1489,9 @@
                 });
 
                 const rawTotalNum = (order.totalAmount || "0").replace(/[^0-9]/g, '');
-                /* J列（10列目）にぴったり合わせるためカンマ9個を出力 */
                 csvContent += `,,,,,,,,,,${rawTotalNum}\r\n`;
             });
         } else {
-            /* 営業用CSV：C列に個別搬入設置費を出力 */
             csvContent += "日付,客先名,搬入設置費,製品名,型式,商品コード,数量,単価,小計,総合計\r\n";
             orders.forEach(order => {
                 const clientEscaped = `"${(order.clientName || "").replace(/"/g, '""')}"`;
@@ -1669,7 +1707,6 @@
             return;
         }
 
-        // --- 誤選択防止用バリデーション ---
         if (lines[0].includes("種別") || lines[0].includes("型式") || lines[0].includes("搬入設置費")) {
             alert("【エラー】選択されたファイルは「営業用（製品価格台帳）」のCSVです。\n技術用（機器リスト）のCSVファイルを選択してください。");
             const csvInput = document.getElementById('csv-file-input');
@@ -1737,7 +1774,6 @@
             return;
         }
 
-        // --- 誤選択防止用バリデーション ---
         if (lines[0].includes("機器ID") || lines[0].includes("部品番号") || lines[0].includes("部品名")) {
             alert("【エラー】選択されたファイルは「技術用（機器リスト）」のCSVです。\n営業用（製品価格台帳）のCSVファイルを選択してください。");
             const productCsvInput = document.getElementById('product-csv-file-input');
@@ -2041,13 +2077,14 @@
                 }
 
                 const displayName = currentAppMode === 'products' ? (p.type || p.name) : p.name;
+                const installInfo = (currentAppMode === 'products') ? ` | 搬入設置費: ￥${(p.installPrice || 0).toLocaleString()}` : '';
 
                 item.innerHTML = `
                     <div class="cart-item-header">
                         <div class="cart-item-name">${displayName}</div>
                         <button class="btn-delete" onclick="removeCartItem(${index})">削除</button>
                     </div>
-                    <div class="cart-item-sub">区分: ${p.machineId} | 番号: ${p.id} | 単価: ￥${singleUnitPrice.toLocaleString()}</div>
+                    <div class="cart-item-sub">区分: ${p.machineId} | 番号: ${p.id} | 単価: ￥${singleUnitPrice.toLocaleString()}${installInfo}</div>
                     <div class="cart-item-controls">
                         <div>
                             <span style="font-size:13px; color:#555; margin-right:4px;">数量:</span>
@@ -2096,6 +2133,7 @@
                 historyItem.className = 'cart-item-block';
                 const singleUnitPrice = p.price || 0;
                 const displayName = currentAppMode === 'products' ? (p.type || p.name) : p.name;
+                const installInfo = (currentAppMode === 'products') ? ` | 搬入設置費: ￥${(p.installPrice || 0).toLocaleString()}` : '';
                 historyItem.innerHTML = `
                     <div class="cart-item-header">
                         <div class="cart-item-name">${displayName}</div>
@@ -2104,7 +2142,7 @@
                             <button class="btn-delete" onclick="removeHistoryItem(${index})">削除</button>
                         </div>
                     </div>
-                    <div class="cart-item-sub">区分: ${p.machineId} | 番号: ${p.id} | 単価: ￥${singleUnitPrice.toLocaleString()}</div>
+                    <div class="cart-item-sub">区分: ${p.machineId} | 番号: ${p.id} | 単価: ￥${singleUnitPrice.toLocaleString()}${installInfo}</div>
                 `;
                 historyContainer.appendChild(historyItem);
             });
